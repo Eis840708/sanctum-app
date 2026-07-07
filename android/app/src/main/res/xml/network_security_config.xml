@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sanctum makes zero network requests. Block all outbound traffic. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- No trusted anchors = no network = fully offline -->
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -1,0 +1,478 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
+import '../../../core/models/models.dart';
+import '../../../core/storage/providers.dart';
+import '../../../shared/theme/app_theme.dart';
+import '../services/receipt_service.dart';
+
+class ReceiptPreviewScreen extends ConsumerStatefulWidget {
+  final File imageFile;
+  const ReceiptPreviewScreen({super.key, required this.imageFile});
+
+  @override
+  ConsumerState<ReceiptPreviewScreen> createState() => _ReceiptPreviewScreenState();
+}
+
+class _ReceiptPreviewScreenState extends ConsumerState<ReceiptPreviewScreen> {
+  bool _loading = true;
+  String? _error;
+
+  // Editable fields
+  late TextEditingController _amountCtrl;
+  late TextEditingController _descCtrl;
+  late String _type;
+  late String _category;
+  late DateTime _date;
+  late String _currency;
+  late List<LineItem> _lineItems;
+
+  static const _currencies = ['MOP', 'HKD', 'CNY', 'USD'];
+
+  @override
+  void initState() {
+    super.initState();
+    _amountCtrl = TextEditingController();
+    _descCtrl   = TextEditingController();
+    _type       = 'expense';
+    _category   = 'cat_food';
+    _date       = DateTime.now();
+    _currency   = 'MOP';
+    _lineItems  = [];
+    _runOCR();
+  }
+
+  @override
+  void dispose() {
+    _amountCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _runOCR() async {
+    try {
+      final result = await ReceiptService.instance.parseImage(widget.imageFile);
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        if (result == null) {
+          _error = '無法識別內容，請手動輸入';
+        } else {
+          _amountCtrl.text = result.amount.toStringAsFixed(2);
+          _descCtrl.text   = result.description;
+          _type            = result.type;
+          _category        = result.category;
+          _date            = result.date;
+          _currency        = result.currency;
+          _lineItems       = List.from(result.lineItems);
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = '識別失敗：$e';
+      });
+    }
+  }
+
+  Future<void> _save() async {
+    final amount = double.tryParse(_amountCtrl.text);
+    if (amount == null || amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('請輸入有效金額')),
+      );
+      return;
+    }
+
+    await ref.read(financeNotifierProvider.notifier).addFull(
+      id: const Uuid().v4(),
+      type: _type,
+      amount: amount,
+      category: _category,
+      description: _descCtrl.text,
+      date: _date,
+      currency: _currency,
+      lineItemsJson: encodeLineItems(_lineItems),
+    );
+
+    if (mounted) {
+      HapticFeedback.mediumImpact();
+      Navigator.of(context).pop(true); // true = saved
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: SanctumTheme.bg,
+      appBar: AppBar(
+        backgroundColor: SanctumTheme.bg,
+        elevation: 0,
+        title: const Text('掃描帳單', style: TextStyle(color: SanctumTheme.textPrimary, fontSize: 17, fontWeight: FontWeight.w600)),
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: SanctumTheme.textSecondary),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        actions: [
+          if (!_loading)
+            TextButton(
+              onPressed: _save,
+              child: const Text('儲存', style: TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600, fontSize: 15)),
+            ),
+        ],
+      ),
+      body: _loading
+          ? const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              CircularProgressIndicator(color: SanctumTheme.gold),
+              SizedBox(height: 16),
+              Text('正在識別帳單…', style: TextStyle(color: SanctumTheme.textTertiary, fontSize: 14)),
+            ]))
+          : _buildForm(),
+    );
+  }
+
+  Widget _buildForm() {
+    return SingleChildScrollView(
+      padding: EdgeInsets.only(left: 16, right: 16, top: 8, bottom: MediaQuery.of(context).viewInsets.bottom + 32),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+        // Thumbnail
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Image.file(widget.imageFile, height: 120, width: double.infinity, fit: BoxFit.cover),
+        ),
+        const SizedBox(height: 4),
+
+        // Error notice
+        if (_error != null)
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: SanctumTheme.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+            child: Row(children: [
+              const Icon(Icons.warning_amber, color: SanctumTheme.red, size: 16),
+              const SizedBox(width: 8),
+              Expanded(child: Text(_error!, style: const TextStyle(color: SanctumTheme.red, fontSize: 13))),
+            ]),
+          ),
+
+        const SizedBox(height: 16),
+
+        // Type toggle
+        Row(children: [
+          _TypeBtn(label: '支出', active: _type == 'expense', color: SanctumTheme.red,   onTap: () => setState(() => _type = 'expense')),
+          const SizedBox(width: 8),
+          _TypeBtn(label: '收入', active: _type == 'income',  color: SanctumTheme.green, onTap: () => setState(() => _type = 'income')),
+        ]),
+        const SizedBox(height: 14),
+
+        // Amount + Currency row
+        Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('金額', style: TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: _amountCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              style: const TextStyle(color: SanctumTheme.textPrimary, fontSize: 22, fontWeight: FontWeight.w600),
+              decoration: const InputDecoration(hintText: '0.00', contentPadding: EdgeInsets.symmetric(vertical: 8)),
+            ),
+          ])),
+          const SizedBox(width: 12),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('幣種', style: TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
+            const SizedBox(height: 6),
+            DropdownButton<String>(
+              value: _currencies.contains(_currency) ? _currency : 'MOP',
+              dropdownColor: SanctumTheme.bg2,
+              style: const TextStyle(color: SanctumTheme.textPrimary, fontSize: 14),
+              underline: const SizedBox.shrink(),
+              items: _currencies.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+              onChanged: (v) => setState(() => _currency = v ?? 'MOP'),
+            ),
+          ]),
+        ]),
+        const SizedBox(height: 14),
+
+        // Description
+        const Text('描述', style: TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _descCtrl,
+          style: const TextStyle(color: SanctumTheme.textPrimary, fontSize: 15),
+          decoration: InputDecoration(
+            hintText: '商戶 / 備注',
+            hintStyle: const TextStyle(color: SanctumTheme.textTertiary, fontSize: 14),
+            filled: true, fillColor: SanctumTheme.bg2,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: SanctumTheme.border)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: SanctumTheme.border)),
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // Date
+        const Text('日期', style: TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
+        const SizedBox(height: 6),
+        GestureDetector(
+          onTap: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: _date,
+              firstDate: DateTime(2020),
+              lastDate: DateTime.now().add(const Duration(days: 1)),
+              builder: (c, ch) => Theme(
+                data: Theme.of(c).copyWith(colorScheme: const ColorScheme.dark(primary: SanctumTheme.gold, surface: SanctumTheme.bg2)),
+                child: ch!,
+              ),
+            );
+            if (picked != null) setState(() => _date = picked);
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              color: SanctumTheme.bg2, borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: SanctumTheme.border),
+            ),
+            child: Row(children: [
+              const Icon(Icons.calendar_today, size: 14, color: SanctumTheme.textTertiary),
+              const SizedBox(width: 8),
+              Text(DateFormat('yyyy年M月d日').format(_date), style: const TextStyle(color: SanctumTheme.textPrimary, fontSize: 14)),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // Category
+        const Text('分類', style: TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
+        const SizedBox(height: 8),
+        _buildCategoryChips(),
+        const SizedBox(height: 20),
+
+        // Line items section
+        _buildLineItemsSection(),
+        const SizedBox(height: 16),
+
+        // Save button
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _save,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: SanctumTheme.gold,
+              foregroundColor: SanctumTheme.bg,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('儲存記錄', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildCategoryChips() {
+    final cats = _type == 'income' ? FinanceCategories.income : FinanceCategories.expense;
+    return Wrap(spacing: 6, runSpacing: 6, children: cats.map((c) {
+      final key = c['key']!;
+      final emoji = c['emoji']!;
+      final active = _category == key;
+      return GestureDetector(
+        onTap: () => setState(() => _category = key),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: active ? SanctumTheme.goldDim : SanctumTheme.bg3,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: active ? SanctumTheme.gold.withValues(alpha: 0.3) : SanctumTheme.border),
+          ),
+          child: Text('$emoji ${_catLabel(key)}', style: TextStyle(fontSize: 12,
+            color: active ? SanctumTheme.gold2 : SanctumTheme.textSecondary)),
+        ),
+      );
+    }).toList());
+  }
+
+  String _catLabel(String key) {
+    const labels = {
+      'cat_work': '工作',   'cat_freelance': '自由接案', 'cat_investment': '投資',
+      'cat_gift': '禮金',   'cat_housing': '住屋',       'cat_food': '飲食',
+      'cat_transport': '交通', 'cat_shopping': '購物',   'cat_health': '健康',
+      'cat_education': '教育', 'cat_entertainment': '娛樂', 'cat_gifts': '禮物',
+      'cat_other': '其他',
+    };
+    return labels[key] ?? key;
+  }
+
+  Widget _buildLineItemsSection() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const Text('細項', style: TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
+        const Spacer(),
+        GestureDetector(
+          onTap: _addLineItem,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: SanctumTheme.goldDim, borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: SanctumTheme.gold.withValues(alpha: 0.3)),
+            ),
+            child: const Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.add, size: 13, color: SanctumTheme.gold),
+              SizedBox(width: 3),
+              Text('加細項', style: TextStyle(fontSize: 12, color: SanctumTheme.gold2)),
+            ]),
+          ),
+        ),
+      ]),
+
+      if (_lineItems.isEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text('（可選）掃描到的明細項目', style: TextStyle(fontSize: 12, color: SanctumTheme.textTertiary.withValues(alpha: 0.6))),
+        )
+      else ...[
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(color: SanctumTheme.bg2, borderRadius: BorderRadius.circular(10), border: Border.all(color: SanctumTheme.border)),
+          child: Column(children: [
+            ..._lineItems.asMap().entries.map((entry) {
+              final i = entry.key;
+              final item = entry.value;
+              return Column(children: [
+                if (i > 0) const Divider(height: 1, color: SanctumTheme.border),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(children: [
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(item.name, style: const TextStyle(color: SanctumTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w500)),
+                    ])),
+                    Text(NumberFormat('#,##0.##').format(item.amount),
+                      style: const TextStyle(color: SanctumTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => _editLineItem(i),
+                      child: const Icon(Icons.edit_outlined, size: 14, color: SanctumTheme.textTertiary),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => setState(() => _lineItems.removeAt(i)),
+                      child: const Icon(Icons.close, size: 14, color: SanctumTheme.textTertiary),
+                    ),
+                  ]),
+                ),
+              ]);
+            }),
+            // Total row
+            const Divider(height: 1, color: SanctumTheme.border),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(children: [
+                const Text('合計', style: TextStyle(color: SanctumTheme.textTertiary, fontSize: 12)),
+                const Spacer(),
+                Text(
+                  NumberFormat('#,##0.##').format(_lineItems.fold(0.0, (s, i) => s + i.amount)),
+                  style: const TextStyle(color: SanctumTheme.gold2, fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+              ]),
+            ),
+          ]),
+        ),
+      ],
+    ]);
+  }
+
+  void _addLineItem() => _showLineItemDialog(null, null);
+  void _editLineItem(int index) => _showLineItemDialog(index, _lineItems[index]);
+
+  void _showLineItemDialog(int? index, LineItem? existing) {
+    final nameCtrl   = TextEditingController(text: existing?.name ?? '');
+    final amountCtrl = TextEditingController(text: existing != null ? existing.amount.toStringAsFixed(2) : '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: SanctumTheme.bg2,
+        title: Text(index == null ? '加細項' : '編輯細項',
+          style: const TextStyle(color: SanctumTheme.textPrimary, fontSize: 16)),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(
+            controller: nameCtrl,
+            autofocus: true,
+            style: const TextStyle(color: SanctumTheme.textPrimary, fontSize: 14),
+            decoration: _inputDecoration('名稱（例：飯、飲品）'),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: amountCtrl,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: const TextStyle(color: SanctumTheme.textPrimary, fontSize: 14),
+            decoration: _inputDecoration('金額'),
+          ),
+        ]),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消', style: TextStyle(color: SanctumTheme.textTertiary)),
+          ),
+          TextButton(
+            onPressed: () {
+              final name = nameCtrl.text.trim();
+              final amount = double.tryParse(amountCtrl.text);
+              if (name.isEmpty || amount == null || amount <= 0) return;
+              setState(() {
+                if (index == null) {
+                  _lineItems.add(LineItem(name: name, amount: amount));
+                } else {
+                  _lineItems[index] = LineItem(name: name, amount: amount);
+                }
+              });
+              Navigator.pop(ctx);
+            },
+            child: const Text('確定', style: TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint) => InputDecoration(
+    hintText: hint,
+    hintStyle: const TextStyle(color: SanctumTheme.textTertiary, fontSize: 13),
+    filled: true, fillColor: SanctumTheme.bg3,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: SanctumTheme.border)),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: SanctumTheme.border)),
+  );
+}
+
+// ── Type button ───────────────────────────────────────────────
+class _TypeBtn extends StatelessWidget {
+  final String label;
+  final bool active;
+  final Color color;
+  final VoidCallback onTap;
+  const _TypeBtn({required this.label, required this.active, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => Expanded(child: GestureDetector(
+    onTap: onTap,
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        color: active ? color.withValues(alpha: 0.12) : SanctumTheme.bg3,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: active ? color.withValues(alpha: 0.4) : SanctumTheme.border),
+      ),
+      child: Center(child: Text(label,
+        style: TextStyle(fontSize: 13, color: active ? color : SanctumTheme.textTertiary,
+          fontWeight: active ? FontWeight.w600 : FontWeight.w400))),
+    ),
+  ));
+}
