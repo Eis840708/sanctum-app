@@ -45,14 +45,15 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final sc = context.sc;
     return Scaffold(
-      backgroundColor: SanctumTheme.bg,
+      backgroundColor: sc.bg,
       appBar: AppBar(
-        backgroundColor: SanctumTheme.bg,
+        backgroundColor: sc.bg,
         elevation: 0,
-        title: const Text('匯入密碼', style: TextStyle(color: SanctumTheme.textPrimary, fontSize: 17, fontWeight: FontWeight.w600)),
+        title: Text('匯入密碼', style: TextStyle(color: sc.textPrimary, fontSize: 17, fontWeight: FontWeight.w600)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: SanctumTheme.textSecondary),
+          icon: Icon(Icons.arrow_back, color: sc.textSecondary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
@@ -68,6 +69,7 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
   }
 
   Widget _buildBody() {
+    final sc = context.sc;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -76,9 +78,9 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: SanctumTheme.bg2,
+            color: sc.bg2,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: SanctumTheme.border),
+            border: Border.all(color: sc.border),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Row(children: [
@@ -97,8 +99,8 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
               child: Row(children: [
                 Container(width: 6, height: 6, margin: const EdgeInsets.only(right: 8, top: 1),
                   decoration: BoxDecoration(color: SanctumTheme.gold.withValues(alpha: 0.5), shape: BoxShape.circle)),
-                Text('${e.$1}：', style: const TextStyle(color: SanctumTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
-                Expanded(child: Text(e.$2, style: const TextStyle(color: SanctumTheme.textTertiary, fontSize: 12))),
+                Text('${e.$1}：', style: TextStyle(color: sc.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
+                Expanded(child: Text(e.$2, style: TextStyle(color: sc.textTertiary, fontSize: 12))),
               ]),
             )),
           ]),
@@ -111,8 +113,8 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
           child: OutlinedButton.icon(
             onPressed: _loading ? null : _pickFile,
             style: OutlinedButton.styleFrom(
-              foregroundColor: SanctumTheme.textPrimary,
-              side: const BorderSide(color: SanctumTheme.border),
+              foregroundColor: sc.textPrimary,
+              side: BorderSide(color: sc.border),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
@@ -141,8 +143,8 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
           const SizedBox(height: 16),
           Row(children: [
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(_fileName!, style: const TextStyle(color: SanctumTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w500)),
-              Text('${_formatLabel(_format)} · ${_entries.length} 個帳號', style: const TextStyle(color: SanctumTheme.textTertiary, fontSize: 12)),
+              Text(_fileName!, style: TextStyle(color: sc.textPrimary, fontSize: 13, fontWeight: FontWeight.w500)),
+              Text('${_formatLabel(_format)} · ${_entries.length} 個帳號', style: TextStyle(color: sc.textTertiary, fontSize: 12)),
             ])),
             TextButton(
               onPressed: _toggleAll,
@@ -160,9 +162,9 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
               return Container(
                 margin: const EdgeInsets.only(bottom: 6),
                 decoration: BoxDecoration(
-                  color: SanctumTheme.bg2,
+                  color: sc.bg2,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: entry.selected ? SanctumTheme.gold.withValues(alpha: 0.25) : SanctumTheme.border),
+                  border: Border.all(color: entry.selected ? SanctumTheme.gold.withValues(alpha: 0.25) : sc.border),
                 ),
                 child: ListTile(
                   contentPadding: const EdgeInsets.fromLTRB(12, 4, 8, 4),
@@ -170,21 +172,21 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
                     value: entry.selected,
                     onChanged: (v) => setState(() => entry.selected = v ?? false),
                     activeColor: SanctumTheme.gold,
-                    side: const BorderSide(color: SanctumTheme.border),
+                    side: BorderSide(color: sc.border),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                   ),
                   title: Text(entry.site.isEmpty ? '（無網站）' : entry.site,
-                    style: const TextStyle(color: SanctumTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w500)),
+                    style: TextStyle(color: sc.textPrimary, fontSize: 13, fontWeight: FontWeight.w500)),
                   subtitle: entry.username.isNotEmpty
-                      ? Text(entry.username, style: const TextStyle(color: SanctumTheme.textTertiary, fontSize: 12))
+                      ? Text(entry.username, style: TextStyle(color: sc.textTertiary, fontSize: 12))
                       : null,
                   trailing: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: SanctumTheme.bg3, borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: SanctumTheme.border),
+                      color: sc.bg3, borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: sc.border),
                     ),
-                    child: const Text('••••••', style: TextStyle(color: SanctumTheme.textTertiary, fontSize: 12, letterSpacing: 2)),
+                    child: Text('••••••', style: TextStyle(color: sc.textTertiary, fontSize: 12, letterSpacing: 2)),
                   ),
                 ),
               );
@@ -197,12 +199,12 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
               onPressed: _importing ? null : _doImport,
               style: ElevatedButton.styleFrom(
                 backgroundColor: SanctumTheme.gold,
-                foregroundColor: SanctumTheme.bg,
+                foregroundColor: sc.bg,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
               child: _importing
-                  ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: SanctumTheme.bg))
+                  ? SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: sc.bg))
                   : Text('匯入 ${_entries.where((e) => e.selected).length} 個帳號',
                       style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
             ),
@@ -213,16 +215,17 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
   }
 
   Widget _buildSuccess() {
+    final sc = context.sc;
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Container(
         width: 72, height: 72,
-        decoration: BoxDecoration(color: SanctumTheme.greenDim, shape: BoxShape.circle),
+        decoration: const BoxDecoration(color: SanctumTheme.greenDim, shape: BoxShape.circle),
         child: const Icon(Icons.check, color: SanctumTheme.green, size: 36),
       ),
       const SizedBox(height: 20),
-      Text('匯入成功！', style: const TextStyle(color: SanctumTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.w700)),
+      Text('匯入成功！', style: TextStyle(color: sc.textPrimary, fontSize: 20, fontWeight: FontWeight.w700)),
       const SizedBox(height: 8),
-      Text('已匯入 $_importedCount 個帳號', style: const TextStyle(color: SanctumTheme.textTertiary, fontSize: 14)),
+      Text('已匯入 $_importedCount 個帳號', style: TextStyle(color: sc.textTertiary, fontSize: 14)),
       const SizedBox(height: 32),
       TextButton(
         onPressed: () => Navigator.of(context).pop(true),
@@ -313,13 +316,11 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
   }
 
   /// Extract a readable domain/name from a URL.
-  /// "https://account.bandainamcoid.com/signup.html" → "bandainamcoid.com"
   String _domainOf(String url) {
     if (url.isEmpty) return url;
     try {
-      var host = Uri.parse(url).host; // "account.bandainamcoid.com"
+      var host = Uri.parse(url).host;
       if (host.startsWith('www.')) host = host.substring(4);
-      // Drop leading subdomain when it's generic (account/login/auth/secure/app/my/id)
       final parts = host.split('.');
       if (parts.length > 2) {
         const generic = {'account', 'accounts', 'login', 'auth', 'secure', 'app', 'my', 'id', 'go', 'sso'};
@@ -334,17 +335,14 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
   _CsvEntry? _parseRow(List<String> cols, CsvFormat format) {
     switch (format) {
       case CsvFormat.chrome:
-        // name, url, username, password
         if (cols.length < 4) return null;
         final cName = cols[0].trim();
         final cUrl  = cols[1].trim();
-        // Prefer human-readable name; fall back to cleaned-up domain
         final site = cName.isNotEmpty ? cName : _domainOf(cUrl);
         return _CsvEntry(site: site, username: cols[2], password: cols[3],
           notes: cName.isNotEmpty && cUrl.isNotEmpty ? cUrl : '');
 
       case CsvFormat.bitwarden:
-        // folder,favorite,type,name,notes,fields,reprompt,login_uri,login_username,login_password,...
         if (cols.length < 10) return null;
         final bName = cols[3].trim();
         final bUri  = cols[7].trim();
@@ -354,7 +352,6 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
         );
 
       case CsvFormat.onePassword:
-        // title,username,password,url,notes,type,...
         if (cols.length < 3) return null;
         final oTitle = cols[0].trim();
         final oUrl   = cols.length > 3 ? cols[3].trim() : '';
@@ -365,7 +362,6 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
         );
 
       case CsvFormat.lastPass:
-        // url,username,password,extra,name,grouping,fav
         if (cols.length < 3) return null;
         final lName = cols.length > 4 ? cols[4].trim() : '';
         final lUrl  = cols[0].trim();

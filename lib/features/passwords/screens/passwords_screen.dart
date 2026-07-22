@@ -39,6 +39,7 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
   @override
   Widget build(BuildContext context) {
     ref.watch(langProvider);
+    final sc = context.sc;
     final state = ref.watch(passwordsNotifierProvider);
     return Column(children: [
       Padding(
@@ -46,12 +47,12 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
         child: TextField(
           controller: _search,
           onChanged: (v) => setState(() => _query = v.toLowerCase()),
-          style: const TextStyle(color: SanctumTheme.textPrimary, fontSize: 14),
+          style: TextStyle(color: sc.textPrimary, fontSize: 14),
           decoration: InputDecoration(
             hintText: '${S.search}…',
-            prefixIcon: const Icon(Icons.search, color: SanctumTheme.textTertiary, size: 18),
+            prefixIcon: Icon(Icons.search, color: sc.textTertiary, size: 18),
             suffixIcon: _query.isNotEmpty
-              ? IconButton(icon: const Icon(Icons.clear, size: 16, color: SanctumTheme.textTertiary),
+              ? IconButton(icon: Icon(Icons.clear, size: 16, color: sc.textTertiary),
                   onPressed: () { _search.clear(); setState(() => _query = ''); })
               : null,
           ),
@@ -93,16 +94,16 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
                         return await showDialog<bool>(
                           context: context,
                           builder: (ctx) => AlertDialog(
-                            backgroundColor: SanctumTheme.bg2,
+                            backgroundColor: sc.bg2,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            title: const Text('刪除密碼', style: TextStyle(color: SanctumTheme.textPrimary, fontWeight: FontWeight.w600)),
+                            title: Text(S.get('deletePasswordTitle'), style: TextStyle(color: sc.textPrimary, fontWeight: FontWeight.w600)),
                             content: Text('確定刪除「${items[i].site}」？\n刪除後可在提示中復原。',
-                              style: const TextStyle(color: SanctumTheme.textSecondary, fontSize: 14)),
+                              style: TextStyle(color: sc.textSecondary, fontSize: 14)),
                             actions: [
                               TextButton(onPressed: () => Navigator.pop(ctx, false),
-                                child: const Text('取消', style: TextStyle(color: SanctumTheme.textSecondary))),
+                                child: Text(S.cancel, style: TextStyle(color: sc.textSecondary))),
                               TextButton(onPressed: () => Navigator.pop(ctx, true),
-                                child: const Text('刪除', style: TextStyle(color: SanctumTheme.red, fontWeight: FontWeight.w600))),
+                                child: Text(S.delete as String, style: TextStyle(color: SanctumTheme.red, fontWeight: FontWeight.w600))),
                             ],
                           ),
                         ) ?? false;
@@ -118,10 +119,10 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
                           ..showSnackBar(SnackBar(
                             content: Text('已刪除「$site」'),
                             duration: const Duration(seconds: 5),
-                            backgroundColor: SanctumTheme.bg2,
+                            backgroundColor: sc.bg2,
                             behavior: SnackBarBehavior.floating,
                             action: SnackBarAction(
-                              label: '復原',
+                              label: S.get('undo'),
                               textColor: SanctumTheme.gold,
                               onPressed: () async {
                                 await vaultService.restoreRawPasswordEntry(backup);
@@ -156,6 +157,7 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
   }
 
   void _showAddSheet(BuildContext context) {
+    final sc = context.sc;
     final site  = TextEditingController();
     final user  = TextEditingController();
     final pw    = TextEditingController();
@@ -165,7 +167,7 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
 
     showModalBottomSheet(
       context: context, isScrollControlled: true,
-      backgroundColor: SanctumTheme.bg2,
+      backgroundColor: sc.bg2,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSt) => Padding(
@@ -175,10 +177,10 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
             mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(
-                  color: SanctumTheme.border2, borderRadius: BorderRadius.circular(2)))),
+                  color: sc.border2, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
-              Text(S.addPassword, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600,
-                  color: SanctumTheme.textPrimary)),
+              Text(S.addPassword, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600,
+                  color: sc.textPrimary)),
               const SizedBox(height: 16),
               SanctumField(label: S.site, hint: 'google.com', controller: site),
               SanctumField(label: S.username, hint: 'you@example.com', controller: user),
@@ -212,6 +214,7 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
   }
 
   void _showEditSheet(BuildContext context, PasswordEntry entry) {
+    final sc = context.sc;
     final site  = TextEditingController(text: entry.site);
     final user  = TextEditingController(text: entry.username);
     final pw    = TextEditingController();
@@ -222,7 +225,7 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
 
     showModalBottomSheet(
       context: context, isScrollControlled: true,
-      backgroundColor: SanctumTheme.bg2,
+      backgroundColor: sc.bg2,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSt) => Padding(
@@ -232,11 +235,11 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
             mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(
-                  color: SanctumTheme.border2, borderRadius: BorderRadius.circular(2)))),
+                  color: sc.border2, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               Row(children: [
-                Text('編輯密碼', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600,
-                    color: SanctumTheme.textPrimary)),
+                Text('編輯密碼', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600,
+                    color: sc.textPrimary)),
                 const Spacer(),
                 // Delete button in edit sheet
                 TextButton.icon(
@@ -246,16 +249,16 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
                     final confirmed = await showDialog<bool>(
                       context: ctx,
                       builder: (d) => AlertDialog(
-                        backgroundColor: SanctumTheme.bg2,
+                        backgroundColor: sc.bg2,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        title: const Text('刪除密碼', style: TextStyle(color: SanctumTheme.textPrimary, fontWeight: FontWeight.w600)),
+                        title: Text(S.get('deletePasswordTitle'), style: TextStyle(color: sc.textPrimary, fontWeight: FontWeight.w600)),
                         content: Text('確定刪除「${entry.site}」？\n刪除後可在提示中復原。',
-                          style: const TextStyle(color: SanctumTheme.textSecondary, fontSize: 14)),
+                          style: TextStyle(color: sc.textSecondary, fontSize: 14)),
                         actions: [
                           TextButton(onPressed: () => Navigator.pop(d, false),
-                            child: const Text('取消', style: TextStyle(color: SanctumTheme.textSecondary))),
+                            child: Text(S.cancel, style: TextStyle(color: sc.textSecondary))),
                           TextButton(onPressed: () => Navigator.pop(d, true),
-                            child: const Text('刪除', style: TextStyle(color: SanctumTheme.red, fontWeight: FontWeight.w600))),
+                            child: Text(S.delete, style: const TextStyle(color: SanctumTheme.red, fontWeight: FontWeight.w600))),
                         ],
                       ),
                     ) ?? false;
@@ -269,10 +272,10 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
                       ..showSnackBar(SnackBar(
                         content: Text('已刪除「${entry.site}」'),
                         duration: const Duration(seconds: 5),
-                        backgroundColor: SanctumTheme.bg2,
+                        backgroundColor: sc.bg2,
                         behavior: SnackBarBehavior.floating,
                         action: SnackBarAction(
-                          label: '復原',
+                          label: S.get('undo'),
                           textColor: SanctumTheme.gold,
                           onPressed: () async {
                             await vaultService.restoreRawPasswordEntry(backup);
@@ -289,9 +292,9 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
               // Password field with hint that it's optional
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
-                  Text(S.password, style: const TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
+                  Text(S.password, style: TextStyle(fontSize: 12, color: sc.textTertiary)),
                   const SizedBox(width: 6),
-                  Text('（留空則不修改）', style: const TextStyle(fontSize: 11, color: SanctumTheme.textTertiary)),
+                  Text('（留空則不修改）', style: TextStyle(fontSize: 11, color: sc.textTertiary)),
                 ]),
                 const SizedBox(height: 5),
                 _PwField(
@@ -346,30 +349,33 @@ class _PwField extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    TextFormField(
-      controller: controller,
-      obscureText: !showPw,
-      onChanged: onChanged,
-      style: const TextStyle(color: SanctumTheme.textPrimary, fontSize: 14),
-      decoration: InputDecoration(
-        hintText: '••••••••',
-        suffixIcon: Row(mainAxisSize: MainAxisSize.min, children: [
-          IconButton(
-            icon: Icon(showPw ? Icons.visibility_off : Icons.visibility,
-                size: 18, color: SanctumTheme.textTertiary),
-            onPressed: onToggle,
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh, size: 18, color: SanctumTheme.gold),
-            onPressed: onGenerate,
-          ),
-        ]),
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      TextFormField(
+        controller: controller,
+        obscureText: !showPw,
+        onChanged: onChanged,
+        style: TextStyle(color: sc.textPrimary, fontSize: 14),
+        decoration: InputDecoration(
+          hintText: '••••••••',
+          suffixIcon: Row(mainAxisSize: MainAxisSize.min, children: [
+            IconButton(
+              icon: Icon(showPw ? Icons.visibility_off : Icons.visibility,
+                  size: 18, color: sc.textTertiary),
+              onPressed: onToggle,
+            ),
+            IconButton(
+              icon: const Icon(Icons.refresh, size: 18, color: SanctumTheme.gold),
+              onPressed: onGenerate,
+            ),
+          ]),
+        ),
       ),
-    ),
-    PasswordStrengthBar(strength: strength),
-    const SizedBox(height: 12),
-  ]);
+      PasswordStrengthBar(strength: strength),
+      const SizedBox(height: 12),
+    ]);
+  }
 }
 
 // ── Password card ─────────────────────────────────────────────
@@ -412,7 +418,7 @@ class _PasswordCardState extends ConsumerState<_PasswordCard> {
     ScaffoldMessenger.of(ctx).clearSnackBars();
     ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor: SanctumTheme.bg3,
+      backgroundColor: ctx.sc.bg3,
       behavior: SnackBarBehavior.floating,
       duration: Duration(seconds: isPassword ? _kClipClearSecs : 2),
     ));
@@ -428,6 +434,7 @@ class _PasswordCardState extends ConsumerState<_PasswordCard> {
 
   @override
   Widget build(BuildContext context) {
+    final sc = context.sc;
     final exp = _expiry;
     return VaultCard(
       accentColor: exp == _ExpiryState.expired ? SanctumTheme.red
@@ -438,16 +445,16 @@ class _PasswordCardState extends ConsumerState<_PasswordCard> {
           AvatarIcon(fallback: widget.entry.site, background: SanctumTheme.purpleDim),
           const SizedBox(width: 10),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(widget.entry.site, style: const TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w500, color: SanctumTheme.textPrimary)),
-            Text(widget.entry.username, style: const TextStyle(
-                fontSize: 12, color: SanctumTheme.textTertiary)),
+            Text(widget.entry.site, style: TextStyle(
+                fontSize: 14, fontWeight: FontWeight.w500, color: sc.textPrimary)),
+            Text(widget.entry.username, style: TextStyle(
+                fontSize: 12, color: sc.textTertiary)),
           ])),
           // Expiry badge
           if (exp != _ExpiryState.ok) _ExpiryBadge(state: exp),
           const SizedBox(width: 6),
           Text(_relativeDate(widget.entry.updatedAt),
-              style: const TextStyle(fontSize: 11, color: SanctumTheme.textTertiary)),
+              style: TextStyle(fontSize: 11, color: sc.textTertiary)),
         ]),
 
         // Clipboard countdown bar
@@ -457,14 +464,14 @@ class _PasswordCardState extends ConsumerState<_PasswordCard> {
             borderRadius: BorderRadius.circular(2),
             child: LinearProgressIndicator(
               value: _clipSecs / _kClipClearSecs,
-              backgroundColor: SanctumTheme.bg3,
+              backgroundColor: sc.bg3,
               valueColor: const AlwaysStoppedAnimation(SanctumTheme.amber),
               minHeight: 2,
             ),
           ).animate().fadeIn(duration: 200.ms),
           const SizedBox(height: 2),
           Text('剪貼簿將在 $_clipSecs 秒後清除',
-            style: const TextStyle(fontSize: 10, color: SanctumTheme.amber)),
+            style: TextStyle(fontSize: 10, color: SanctumTheme.amber)),
         ],
 
         const SizedBox(height: 10),
@@ -502,6 +509,7 @@ class _ExpiryBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sc = context.sc;
     final color = state == _ExpiryState.expired ? SanctumTheme.red : SanctumTheme.amber;
     final label = state == _ExpiryState.expired ? '已過期' : '建議更新';
     return Container(
@@ -521,17 +529,20 @@ class _CardBtn extends StatelessWidget {
   final VoidCallback onTap;
   const _CardBtn({required this.label, required this.onTap});
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: SanctumTheme.bg3,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: SanctumTheme.border),
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: sc.bg3,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: sc.border),
+        ),
+        child: Text(label, style: TextStyle(fontSize: 11,
+            color: sc.textTertiary)),
       ),
-      child: Text(label, style: const TextStyle(fontSize: 11,
-          color: SanctumTheme.textTertiary)),
-    ),
-  );
+    );
+  }
 }
