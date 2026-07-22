@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <provider
+            android:name="com.sanctum.vault.HostileImageProviderJava"
+            android:authorities="${applicationId}.hostile"
+            android:exported="true" />
+    </application>
+</manifest>
