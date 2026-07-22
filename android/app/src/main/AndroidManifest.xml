@@ -51,6 +51,12 @@
             </intent-filter>
         </activity>
 
+        <service
+            android:name=".SharedImageWorkerService"
+            android:exported="false"
+            android:process=":share_worker"
+            android:stopWithTask="false"/>
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2"/>
