@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/i18n/strings.dart';
 import 'core/i18n/lang_provider.dart';
+import 'core/i18n/theme_provider.dart';
 import 'core/storage/providers.dart';
 import 'core/storage/vault_service.dart';
 import 'features/auth/screens/lock_screen.dart';
@@ -19,11 +21,20 @@ import 'shared/theme/app_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await vaultService.init();
+  final savedLang = await LangNotifier.loadSaved();
+  final savedTheme = await ThemeNotifier.loadSaved();
+  S.setLang(savedLang);
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarBrightness: Brightness.dark,
     statusBarIconBrightness: Brightness.light,
   ));
-  runApp(const ProviderScope(child: SanctumApp()));
+  runApp(ProviderScope(
+    overrides: [
+      langProvider.overrideWith((_) => LangNotifier(savedLang)),
+      themeProvider.overrideWith((_) => ThemeNotifier(savedTheme)),
+    ],
+    child: const SanctumApp(),
+  ));
 }
 
 class SanctumApp extends ConsumerWidget {
@@ -31,10 +42,13 @@ class SanctumApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(langProvider);
+    final themeMode = ref.watch(themeProvider);
     return MaterialApp(
       title: 'Sanctum',
       debugShowCheckedModeBanner: false,
-      theme: SanctumTheme.dark,
+      theme: SanctumTheme.light,
+      darkTheme: SanctumTheme.dark,
+      themeMode: themeMode,
       home: const _Root(),
     );
   }
@@ -46,16 +60,20 @@ class _Root extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
     ref.listen<AuthState>(authProvider, (_, next) {
-      if (next == AuthState.unlocked) { ref.read(inactivityProvider.notifier).resetTimer(); }
-      else { ref.read(inactivityProvider.notifier).cancel(); }
+      if (next == AuthState.unlocked) {
+        ref.read(inactivityProvider.notifier).resetTimer();
+      } else {
+        ref.read(inactivityProvider.notifier).cancel();
+      }
     });
     return switch (auth) {
-      AuthState.locked   => const LockScreen(),
-      AuthState.loading  => const _LoadingScreen(),
+      AuthState.locked => const LockScreen(),
+      AuthState.loading => const _LoadingScreen(),
       AuthState.unlocked => Listener(
-        onPointerDown: (_) => ref.read(inactivityProvider.notifier).resetTimer(),
-        child: const _MainShell(),
-      ),
+          onPointerDown: (_) =>
+              ref.read(inactivityProvider.notifier).resetTimer(),
+          child: const _MainShell(),
+        ),
     };
   }
 }
@@ -63,10 +81,11 @@ class _Root extends ConsumerWidget {
 class _LoadingScreen extends StatelessWidget {
   const _LoadingScreen();
   @override
-  Widget build(BuildContext context) => const Scaffold(
-    backgroundColor: SanctumTheme.bg,
-    body: Center(child: CircularProgressIndicator(color: SanctumTheme.gold)),
-  );
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: context.sc.bg,
+        body: const Center(
+            child: CircularProgressIndicator(color: SanctumTheme.gold)),
+      );
 }
 
 // ── Language selector ─────────────────────────────────────────
@@ -74,44 +93,68 @@ class LangSelector extends ConsumerWidget {
   const LangSelector({super.key});
 
   static const _langs = [
-    ('zh', '繁中(港)'), ('zh-TW', '繁中(台)'), ('zh-SC', '简体中文'),
-    ('en', 'EN'), ('ja', '日本語'), ('ko', '한국어'),
-    ('fr', 'FR'), ('de', 'DE'), ('es', 'ES'), ('la', 'LAT'),
+    ('zh', '繁中(港)'),
+    ('zh-TW', '繁中(台)'),
+    ('zh-SC', '简体中文'),
+    ('en', 'EN'),
+    ('ja', '日本語'),
+    ('ko', '한국어'),
+    ('fr', 'FR'),
+    ('de', 'DE'),
+    ('es', 'ES'),
+    ('la', 'LAT'),
   ];
+
+  static const _shortName = {
+    'zh': '繁港',
+    'zh-TW': '繁台',
+    'zh-SC': '简体',
+    'en': 'EN',
+    'ja': '日',
+    'ko': '한',
+    'fr': 'FR',
+    'de': 'DE',
+    'es': 'ES',
+    'la': 'LAT',
+  };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final sc = context.sc;
     final current = ref.watch(langProvider);
     return PopupMenuButton<String>(
-      color: SanctumTheme.bg2,
+      color: sc.bg2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
-        side: const BorderSide(color: SanctumTheme.border),
+        side: BorderSide(color: sc.border),
       ),
       onSelected: (lang) => ref.read(langProvider.notifier).setLang(lang),
-      itemBuilder: (_) => _langs.map((l) => PopupMenuItem(
-        value: l.$1,
-        child: Row(children: [
-          if (current == l.$1)
-            const Icon(Icons.check, size: 14, color: SanctumTheme.gold)
-          else
-            const SizedBox(width: 14),
-          const SizedBox(width: 8),
-          Text(l.$2, style: const TextStyle(fontSize: 13, color: SanctumTheme.textPrimary)),
-        ]),
-      )).toList(),
+      itemBuilder: (_) => _langs
+          .map((l) => PopupMenuItem(
+                value: l.$1,
+                child: Row(children: [
+                  if (current == l.$1)
+                    Icon(Icons.check, size: 14, color: SanctumTheme.gold)
+                  else
+                    const SizedBox(width: 14),
+                  const SizedBox(width: 8),
+                  Text(l.$2,
+                      style: TextStyle(fontSize: 13, color: sc.textPrimary)),
+                ]),
+              ))
+          .toList(),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: SanctumTheme.bg3,
+          color: sc.bg3,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: SanctumTheme.border),
+          border: Border.all(color: sc.border),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.language, size: 14, color: SanctumTheme.textTertiary),
+          Icon(Icons.language, size: 14, color: sc.textTertiary),
           const SizedBox(width: 4),
-          Text(current.toUpperCase(),
-            style: const TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
+          Text(_shortName[current] ?? current.toUpperCase(),
+              style: TextStyle(fontSize: 12, color: sc.textTertiary)),
         ]),
       ),
     );
@@ -128,11 +171,12 @@ class _MainShell extends ConsumerStatefulWidget {
 class _MainShellState extends ConsumerState<_MainShell> {
   int _tab = 0;
   static const _shareChannel = MethodChannel('com.sanctum.vault/share');
+  final Set<String> _activeSharedImages = <String>{};
 
   // Tab indices
-  static const _kPasswords  = 1;
-  static const _kDiary      = 2;
-  static const _kFinance    = 3;
+  static const _kPasswords = 1;
+  static const _kDiary = 2;
+  static const _kFinance = 3;
 
   @override
   void initState() {
@@ -140,7 +184,10 @@ class _MainShellState extends ConsumerState<_MainShell> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkSharedImage());
     _shareChannel.setMethodCallHandler((call) async {
       if (call.method == 'newSharedImage' && call.arguments is String) {
-        _openSharedImage(call.arguments as String);
+        unawaited(_openSharedImage(call.arguments as String));
+      } else if (call.method == 'sharedImageError' &&
+          call.arguments is String) {
+        _showSharedImageError(call.arguments as String);
       }
     });
   }
@@ -149,31 +196,77 @@ class _MainShellState extends ConsumerState<_MainShell> {
     try {
       final path = await _shareChannel.invokeMethod<String>('getSharedImage');
       if (path != null && path.isNotEmpty && mounted) {
-        _openSharedImage(path);
+        unawaited(_openSharedImage(path));
       }
-    } catch (_) {}
+    } on PlatformException catch (error) {
+      _showSharedImageError(error.code);
+    }
   }
 
-  void _openSharedImage(String path) {
-    // Switch to finance tab and open preview
-    setState(() => _tab = _kFinance);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+  Future<void> _openSharedImage(String path) async {
+    if (!_activeSharedImages.add(path)) return;
+    try {
       if (!mounted) return;
-      Navigator.of(context).push(MaterialPageRoute(
+      setState(() => _tab = _kFinance);
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
+      await Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => ReceiptPreviewScreen(imageFile: File(path)),
       ));
-    });
+    } finally {
+      _activeSharedImages.remove(path);
+      try {
+        await _shareChannel.invokeMethod<bool>('releaseSharedImage', path);
+      } on PlatformException {
+        // Startup cleanup remains the fallback if the native side is unavailable.
+      }
+    }
+  }
+
+  void _showSharedImageError(String code) {
+    if (!mounted) return;
+    final isChinese = Localizations.localeOf(context).languageCode == 'zh';
+    final message = switch (code) {
+      'too_large' => isChinese
+          ? '圖片超過 10 MB 上限，請縮小後再試。'
+          : 'The image exceeds the 10 MB limit. Reduce it and try again.',
+      'timeout' => isChinese
+          ? '讀取圖片逾時，請重新分享。'
+          : 'Reading the image timed out. Please share it again.',
+      'invalid_image' => isChinese
+          ? '無法辨識這個圖片檔案。'
+          : 'This file could not be recognized as an image.',
+      'unsupported_uri' => isChinese
+          ? '此分享來源不受支援，請改用其他圖片來源。'
+          : 'This sharing source is not supported. Try another source.',
+      'busy' => isChinese
+          ? '正在處理另一張圖片，請稍後再試。'
+          : 'Another image is being processed. Please try again shortly.',
+      _ => isChinese
+          ? '目前無法讀取圖片，請重新分享。'
+          : 'The image is unavailable. Please share it again.',
+    };
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  void dispose() {
+    _shareChannel.setMethodCallHandler(null);
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     ref.watch(langProvider);
+    final sc = context.sc;
 
     final screens = [
       DashboardScreen(
         onGoPasswords: () => _setTab(_kPasswords),
-        onGoDiary:     () => _setTab(_kDiary),
-        onGoFinance:   () => _setTab(_kFinance),
+        onGoDiary: () => _setTab(_kDiary),
+        onGoFinance: () => _setTab(_kFinance),
       ),
       const PasswordsScreen(),
       const DiaryScreen(),
@@ -182,22 +275,25 @@ class _MainShellState extends ConsumerState<_MainShell> {
     ];
 
     return Scaffold(
-      backgroundColor: SanctumTheme.bg,
+      backgroundColor: sc.bg,
       appBar: AppBar(
-        backgroundColor: SanctumTheme.bg2,
+        backgroundColor: sc.bg2,
         elevation: 0,
         titleSpacing: 16,
         title: ShaderMask(
           shaderCallback: (b) => SanctumDecor.goldGradient().createShader(b),
-          child: const Text('Sanctum', style: TextStyle(
-            fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white,
-          )),
+          child: const Text('Sanctum',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              )),
         ),
         actions: [
           // Search
           IconButton(
             icon: const Icon(Icons.search, size: 20),
-            color: SanctumTheme.textTertiary,
+            color: sc.textTertiary,
             onPressed: () {
               HapticFeedback.selectionClick();
               showSearch(context: context, delegate: _VaultSearchDelegate());
@@ -207,7 +303,7 @@ class _MainShellState extends ConsumerState<_MainShell> {
           const SizedBox(width: 4),
           IconButton(
             icon: const Icon(Icons.lock_outline, size: 20),
-            color: SanctumTheme.textTertiary,
+            color: sc.textTertiary,
             onPressed: () {
               HapticFeedback.mediumImpact();
               ref.read(authProvider.notifier).lock();
@@ -237,34 +333,61 @@ class _BottomNav extends StatelessWidget {
   const _BottomNav({required this.current, required this.onTap});
 
   @override
-  Widget build(BuildContext context) => Container(
-    decoration: const BoxDecoration(
-      color: SanctumTheme.bg2,
-      border: Border(top: BorderSide(color: SanctumTheme.border, width: 0.5)),
-    ),
-    child: SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _NavItem(icon: Icons.home_outlined,     activeIcon: Icons.home_rounded,
-                label: '主頁',    index: 0, current: current, onTap: onTap),
-            _NavItem(icon: Icons.key_outlined,       activeIcon: Icons.key_rounded,
-                label: S.navPasswords, index: 1, current: current, onTap: onTap),
-            _NavItem(icon: Icons.menu_book_outlined, activeIcon: Icons.menu_book_rounded,
-                label: S.navDiary,     index: 2, current: current, onTap: onTap),
-            _NavItem(icon: Icons.account_balance_wallet_outlined,
-                activeIcon: Icons.account_balance_wallet_rounded,
-                label: S.navFinance,   index: 3, current: current, onTap: onTap),
-            _NavItem(icon: Icons.settings_outlined,  activeIcon: Icons.settings_rounded,
-                label: S.navSettings,  index: 4, current: current, onTap: onTap),
-          ],
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return Container(
+      decoration: BoxDecoration(
+        color: sc.bg2,
+        border: Border(top: BorderSide(color: sc.border, width: 0.5)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _NavItem(
+                  icon: Icons.home_outlined,
+                  activeIcon: Icons.home_rounded,
+                  label: S.navHome,
+                  index: 0,
+                  current: current,
+                  onTap: onTap),
+              _NavItem(
+                  icon: Icons.key_outlined,
+                  activeIcon: Icons.key_rounded,
+                  label: S.navPasswords,
+                  index: 1,
+                  current: current,
+                  onTap: onTap),
+              _NavItem(
+                  icon: Icons.menu_book_outlined,
+                  activeIcon: Icons.menu_book_rounded,
+                  label: S.navDiary,
+                  index: 2,
+                  current: current,
+                  onTap: onTap),
+              _NavItem(
+                  icon: Icons.account_balance_wallet_outlined,
+                  activeIcon: Icons.account_balance_wallet_rounded,
+                  label: S.navFinance,
+                  index: 3,
+                  current: current,
+                  onTap: onTap),
+              _NavItem(
+                  icon: Icons.settings_outlined,
+                  activeIcon: Icons.settings_rounded,
+                  label: S.navSettings,
+                  index: 4,
+                  current: current,
+                  onTap: onTap),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _NavItem extends StatelessWidget {
@@ -272,11 +395,17 @@ class _NavItem extends StatelessWidget {
   final String label;
   final int index, current;
   final ValueChanged<int> onTap;
-  const _NavItem({required this.icon, required this.activeIcon, required this.label,
-      required this.index, required this.current, required this.onTap});
+  const _NavItem(
+      {required this.icon,
+      required this.activeIcon,
+      required this.label,
+      required this.index,
+      required this.current,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final sc = context.sc;
     final active = index == current;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -290,14 +419,14 @@ class _NavItem extends StatelessWidget {
         ),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Icon(active ? activeIcon : icon,
-              size: 22,
-              color: active ? SanctumTheme.gold2 : SanctumTheme.textTertiary),
+              size: 22, color: active ? SanctumTheme.gold2 : sc.textTertiary),
           const SizedBox(height: 3),
-          Text(label, style: TextStyle(
-            fontSize: 10,
-            color: active ? SanctumTheme.gold2 : SanctumTheme.textTertiary,
-            fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-          )),
+          Text(label,
+              style: TextStyle(
+                fontSize: 10,
+                color: active ? SanctumTheme.gold2 : sc.textTertiary,
+                fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+              )),
         ]),
       ),
     );
@@ -307,34 +436,37 @@ class _NavItem extends StatelessWidget {
 // ── Vault search delegate (uses existing SearchScreen logic) ──
 class _VaultSearchDelegate extends SearchDelegate<String> {
   @override
-  String get searchFieldLabel => '搜尋密碼、日記、財務…';
+  String get searchFieldLabel => S.searchHint;
 
   @override
-  ThemeData appBarTheme(BuildContext context) => Theme.of(context).copyWith(
-    appBarTheme: const AppBarTheme(backgroundColor: SanctumTheme.bg2, elevation: 0),
-    inputDecorationTheme: const InputDecorationTheme(
-      hintStyle: TextStyle(color: SanctumTheme.textTertiary),
-      border: InputBorder.none,
-    ),
-    textTheme: const TextTheme(
-      titleLarge: TextStyle(color: SanctumTheme.textPrimary, fontSize: 15),
-    ),
-  );
+  ThemeData appBarTheme(BuildContext context) {
+    final sc = context.sc;
+    return Theme.of(context).copyWith(
+      appBarTheme: AppBarTheme(backgroundColor: sc.bg2, elevation: 0),
+      inputDecorationTheme: InputDecorationTheme(
+        hintStyle: TextStyle(color: sc.textTertiary),
+        border: InputBorder.none,
+      ),
+      textTheme: TextTheme(
+        titleLarge: TextStyle(color: sc.textPrimary, fontSize: 15),
+      ),
+    );
+  }
 
   @override
   List<Widget> buildActions(BuildContext context) => [
-    if (query.isNotEmpty)
-      IconButton(
-        icon: const Icon(Icons.clear, size: 18, color: SanctumTheme.textTertiary),
-        onPressed: () => query = '',
-      ),
-  ];
+        if (query.isNotEmpty)
+          IconButton(
+            icon: Icon(Icons.clear, size: 18, color: context.sc.textTertiary),
+            onPressed: () => query = '',
+          ),
+      ];
 
   @override
   Widget buildLeading(BuildContext context) => IconButton(
-    icon: const Icon(Icons.arrow_back, size: 20, color: SanctumTheme.textTertiary),
-    onPressed: () => close(context, ''),
-  );
+        icon: Icon(Icons.arrow_back, size: 20, color: context.sc.textTertiary),
+        onPressed: () => close(context, ''),
+      );
 
   @override
   Widget buildResults(BuildContext context) =>
