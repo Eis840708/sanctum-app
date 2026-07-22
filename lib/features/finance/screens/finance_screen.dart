@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'dart:math' as math;
 import 'dart:io';
 import '../../../core/i18n/strings.dart';
+import '../../../core/i18n/lang_provider.dart';
 import '../../../core/models/models.dart';
 import '../../../core/storage/providers.dart';
 import '../../../core/storage/vault_service.dart';
@@ -36,6 +37,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(langProvider);
     final state = ref.watch(financeNotifierProvider);
     return state.when(
       loading: () => const Center(child: CircularProgressIndicator(color: SanctumTheme.gold)),
@@ -50,44 +52,44 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
 
         return CustomScrollView(slivers: [
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
             sliver: SliverToBoxAdapter(child: Column(children: [
               // Header
               Row(children: [
-                Text(S.finance, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: SanctumTheme.textPrimary, letterSpacing: -0.3)),
-                const Spacer(),
+                Text(S.finance, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: context.sc.textPrimary, letterSpacing: -0.3)),
+                Spacer(),
                 // Chart toggle
                 GestureDetector(
                   onTap: () => setState(() => _showChart = !_showChart),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: _showChart ? SanctumTheme.goldDim : SanctumTheme.bg2,
+                      color: _showChart ? SanctumTheme.goldDim : context.sc.bg2,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: _showChart ? SanctumTheme.gold.withValues(alpha: 0.3) : SanctumTheme.border),
+                      border: Border.all(color: _showChart ? SanctumTheme.gold.withValues(alpha: 0.3) : context.sc.border),
                     ),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.bar_chart, size: 14, color: _showChart ? SanctumTheme.gold2 : SanctumTheme.textTertiary),
-                      const SizedBox(width: 4),
-                      Text(S.chart, style: TextStyle(fontSize: 12, color: _showChart ? SanctumTheme.gold2 : SanctumTheme.textTertiary)),
+                      Icon(Icons.bar_chart, size: 14, color: _showChart ? SanctumTheme.gold2 : context.sc.textTertiary),
+                      SizedBox(width: 4),
+                      Text(S.chart, style: TextStyle(fontSize: 12, color: _showChart ? SanctumTheme.gold2 : context.sc.textTertiary)),
                     ]),
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 // Scan button
                 GestureDetector(
                   onTap: () => _showScanOptions(context),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: SanctumTheme.bg2,
+                      color: context.sc.bg2,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: SanctumTheme.border),
+                      border: Border.all(color: context.sc.border),
                     ),
-                    child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.document_scanner_outlined, size: 14, color: SanctumTheme.textTertiary),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.document_scanner_outlined, size: 14, color: context.sc.textTertiary),
                       SizedBox(width: 4),
-                      Text('掃描', style: TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
+                      Text('掃描', style: TextStyle(fontSize: 12, color: context.sc.textTertiary)),
                     ]),
                   ),
                 ),
@@ -178,22 +180,22 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
   void _showScanOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: SanctumTheme.bg2,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: context.sc.bg2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const SizedBox(height: 16),
-        Container(width: 36, height: 4, decoration: BoxDecoration(color: SanctumTheme.border2, borderRadius: BorderRadius.circular(2))),
-        const SizedBox(height: 16),
-        const Text('匯入帳單', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: SanctumTheme.textPrimary)),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
+        Container(width: 36, height: 4, decoration: BoxDecoration(color: context.sc.border2, borderRadius: BorderRadius.circular(2))),
+        SizedBox(height: 16),
+        Text('匯入帳單', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: context.sc.textPrimary)),
+        SizedBox(height: 16),
         ListTile(
           leading: Container(
             width: 36, height: 36,
             decoration: BoxDecoration(color: SanctumTheme.goldDim, borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.camera_alt_outlined, color: SanctumTheme.gold, size: 18),
+            child: Icon(Icons.camera_alt_outlined, color: SanctumTheme.gold, size: 18),
           ),
-          title: const Text('拍攝帳單', style: TextStyle(color: SanctumTheme.textPrimary, fontSize: 14)),
-          subtitle: const Text('用相機拍下帳單或收據', style: TextStyle(color: SanctumTheme.textTertiary, fontSize: 12)),
+          title: Text('拍攝帳單', style: TextStyle(color: context.sc.textPrimary, fontSize: 14)),
+          subtitle: Text('用相機拍下帳單或收據', style: TextStyle(color: context.sc.textTertiary, fontSize: 12)),
           onTap: () async {
             Navigator.pop(ctx);
             final file = await ReceiptService.instance.pickFromCamera();
@@ -203,11 +205,11 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
         ListTile(
           leading: Container(
             width: 36, height: 36,
-            decoration: BoxDecoration(color: SanctumTheme.bg3, borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.photo_library_outlined, color: SanctumTheme.textSecondary, size: 18),
+            decoration: BoxDecoration(color: context.sc.bg3, borderRadius: BorderRadius.circular(8)),
+            child: Icon(Icons.photo_library_outlined, color: context.sc.textSecondary, size: 18),
           ),
-          title: const Text('從相簿選擇', style: TextStyle(color: SanctumTheme.textPrimary, fontSize: 14)),
-          subtitle: const Text('選擇截圖（銀行短訊、收據等）', style: TextStyle(color: SanctumTheme.textTertiary, fontSize: 12)),
+          title: Text('從相簿選擇', style: TextStyle(color: context.sc.textPrimary, fontSize: 14)),
+          subtitle: Text('選擇截圖（銀行短訊、收據等）', style: TextStyle(color: context.sc.textTertiary, fontSize: 12)),
           onTap: () async {
             Navigator.pop(ctx);
             final file = await ReceiptService.instance.pickFromGallery();
@@ -238,7 +240,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
 
     showModalBottomSheet(
       context: context, isScrollControlled: true,
-      backgroundColor: SanctumTheme.bg2,
+      backgroundColor: context.sc.bg2,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSt) {
@@ -276,7 +278,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
 
     showModalBottomSheet(
       context: context, isScrollControlled: true,
-      backgroundColor: SanctumTheme.bg2,
+      backgroundColor: context.sc.bg2,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSt) {
@@ -322,20 +324,20 @@ class _FinanceChart extends StatelessWidget {
       else expenseByMonth[key] = (expenseByMonth[key] ?? 0) + r.amount;
     }
     final allKeys = {...incomeByMonth.keys, ...expenseByMonth.keys}.toList()..sort();
-    if (allKeys.isEmpty) return const SizedBox.shrink();
+    if (allKeys.isEmpty) return SizedBox.shrink();
     final last6 = allKeys.length > 6 ? allKeys.sublist(allKeys.length - 6) : allKeys;
     final maxVal = last6.map((k) => math.max(incomeByMonth[k] ?? 0, expenseByMonth[k] ?? 0)).reduce(math.max);
 
     return Container(
       height: 160,
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: SanctumTheme.bg2,
+        color: context.sc.bg2,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: SanctumTheme.border),
+        border: Border.all(color: context.sc.border),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(S.monthly, style: const TextStyle(fontSize: 11, color: SanctumTheme.textTertiary, letterSpacing: 0.3)),
+        Text(S.monthly, style: TextStyle(fontSize: 11, color: context.sc.textTertiary, letterSpacing: 0.3)),
         const SizedBox(height: 8),
         Expanded(
           child: Row(
@@ -347,15 +349,15 @@ class _FinanceChart extends StatelessWidget {
               final expH = maxVal > 0 ? (exp / maxVal) : 0.0;
               final month = k.split('-')[1];
               return Expanded(child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3),
+                padding: EdgeInsets.symmetric(horizontal: 3),
                 child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
                   Row(crossAxisAlignment: CrossAxisAlignment.end, mainAxisAlignment: MainAxisAlignment.center, children: [
                     _Bar(ratio: incH.toDouble(), color: SanctumTheme.green),
-                    const SizedBox(width: 2),
+                    SizedBox(width: 2),
                     _Bar(ratio: expH.toDouble(), color: SanctumTheme.red),
                   ]),
-                  const SizedBox(height: 4),
-                  Text(month, style: const TextStyle(fontSize: 9, color: SanctumTheme.textTertiary)),
+                  SizedBox(height: 4),
+                  Text(month, style: TextStyle(fontSize: 9, color: context.sc.textTertiary)),
                 ]),
               ));
             }).toList(),
@@ -391,8 +393,8 @@ class _Legend extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
     Container(width: 8, height: 8, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
-    const SizedBox(width: 4),
-    Text(label, style: const TextStyle(fontSize: 10, color: SanctumTheme.textTertiary)),
+    SizedBox(width: 4),
+    Text(label, style: TextStyle(fontSize: 10, color: context.sc.textTertiary)),
   ]);
 }
 
@@ -466,51 +468,51 @@ class _FinanceFormState extends State<_FinanceForm> {
   Widget build(BuildContext context) => Padding(
     padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 24),
     child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: SanctumTheme.border2, borderRadius: BorderRadius.circular(2)))),
-      const SizedBox(height: 16),
-      Text(widget.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: SanctumTheme.textPrimary)),
-      const SizedBox(height: 16),
+      Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: context.sc.border2, borderRadius: BorderRadius.circular(2)))),
+      SizedBox(height: 16),
+      Text(widget.title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: context.sc.textPrimary)),
+      SizedBox(height: 16),
       // Type toggle
       Row(children: [
         _TypeBtn(label: S.expense, emoji: '↓', active: widget.type == 'expense', color: SanctumTheme.red,   onTap: () => widget.onTypeChange('expense')),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
         _TypeBtn(label: S.income,  emoji: '↑', active: widget.type == 'income',  color: SanctumTheme.green, onTap: () => widget.onTypeChange('income')),
       ]),
-      const SizedBox(height: 12),
-      Text(S.amount, style: const TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
-      const SizedBox(height: 5),
+      SizedBox(height: 12),
+      Text(S.amount, style: TextStyle(fontSize: 12, color: context.sc.textTertiary)),
+      SizedBox(height: 5),
       TextFormField(
         controller: widget.amountCtrl,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        style: const TextStyle(color: SanctumTheme.textPrimary, fontSize: 22, fontWeight: FontWeight.w600),
-        decoration: const InputDecoration(hintText: '0.00', prefixText: '\$ '),
+        keyboardType: TextInputType.numberWithOptions(decimal: true),
+        style: TextStyle(color: context.sc.textPrimary, fontSize: 22, fontWeight: FontWeight.w600),
+        decoration: InputDecoration(hintText: '0.00', prefixText: '\$ '),
         autofocus: true,
       ),
-      const SizedBox(height: 12),
-      Text('幣別', style: const TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
+      SizedBox(height: 12),
+      Text('幣別', style: TextStyle(fontSize: 12, color: context.sc.textTertiary)),
       const SizedBox(height: 6),
       Row(children: ['MOP', 'HKD', 'CNY', 'USD'].map((c) {
         final active = widget.currency == c;
         return Padding(
-          padding: const EdgeInsets.only(right: 6),
+          padding: EdgeInsets.only(right: 6),
           child: GestureDetector(
             onTap: () => widget.onCurrencyChange?.call(c),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              duration: Duration(milliseconds: 150),
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: active ? SanctumTheme.goldDim : SanctumTheme.bg3,
+                color: active ? SanctumTheme.goldDim : context.sc.bg3,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: active ? SanctumTheme.gold.withValues(alpha: 0.3) : SanctumTheme.border),
+                border: Border.all(color: active ? SanctumTheme.gold.withValues(alpha: 0.3) : context.sc.border),
               ),
               child: Text(c, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500,
-                color: active ? SanctumTheme.gold2 : SanctumTheme.textSecondary)),
+                color: active ? SanctumTheme.gold2 : context.sc.textSecondary)),
             ),
           ),
         );
       }).toList()),
-      const SizedBox(height: 12),
-      Text(S.category, style: const TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
+      SizedBox(height: 12),
+      Text(S.category, style: TextStyle(fontSize: 12, color: context.sc.textTertiary)),
       const SizedBox(height: 8),
       Wrap(spacing: 6, runSpacing: 6, children: widget.cats.map((c) {
         final key    = c['key']!;
@@ -522,39 +524,39 @@ class _FinanceFormState extends State<_FinanceForm> {
             if (key == 'cat_other') setState(() {});
           },
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            duration: Duration(milliseconds: 150),
+            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: active ? SanctumTheme.goldDim : SanctumTheme.bg3,
+              color: active ? SanctumTheme.goldDim : context.sc.bg3,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: active ? SanctumTheme.gold.withValues(alpha: 0.3) : SanctumTheme.border),
+              border: Border.all(color: active ? SanctumTheme.gold.withValues(alpha: 0.3) : context.sc.border),
             ),
-            child: Text(label, style: TextStyle(fontSize: 12, color: active ? SanctumTheme.gold2 : SanctumTheme.textSecondary)),
+            child: Text(label, style: TextStyle(fontSize: 12, color: active ? SanctumTheme.gold2 : context.sc.textSecondary)),
           ),
         );
       }).toList()),
 
       // ── Custom label section (only when 其他 is selected) ──
       if (_isOther) ...[
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: SanctumTheme.bg3,
+            color: context.sc.bg3,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: SanctumTheme.gold.withValues(alpha: 0.2)),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('自訂分類', style: TextStyle(fontSize: 12, color: SanctumTheme.gold, fontWeight: FontWeight.w500)),
-            const SizedBox(height: 10),
+            Text('自訂分類', style: TextStyle(fontSize: 12, color: SanctumTheme.gold, fontWeight: FontWeight.w500)),
+            SizedBox(height: 10),
             Row(children: [
               // Emoji field
               Container(
                 width: 50, height: 44,
                 decoration: BoxDecoration(
-                  color: SanctumTheme.bg2,
+                  color: context.sc.bg2,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: SanctumTheme.border),
+                  border: Border.all(color: context.sc.border),
                 ),
                 child: Center(child: TextField(
                   controller: _customEmojiCtrl,
@@ -570,24 +572,24 @@ class _FinanceFormState extends State<_FinanceForm> {
                   ),
                 )),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               // Label field
               Expanded(child: TextField(
                 controller: _customLabelCtrl,
-                style: const TextStyle(color: SanctumTheme.textPrimary, fontSize: 14),
+                style: TextStyle(color: context.sc.textPrimary, fontSize: 14),
                 decoration: InputDecoration(
                   hintText: '輸入分類名稱',
-                  hintStyle: const TextStyle(color: SanctumTheme.textTertiary, fontSize: 13),
+                  hintStyle: TextStyle(color: context.sc.textTertiary, fontSize: 13),
                   filled: true,
-                  fillColor: SanctumTheme.bg2,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  fillColor: context.sc.bg2,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: SanctumTheme.border),
+                    borderSide: BorderSide(color: context.sc.border),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: SanctumTheme.border),
+                    borderSide: BorderSide(color: context.sc.border),
                   ),
                 ),
               )),
@@ -600,12 +602,12 @@ class _FinanceFormState extends State<_FinanceForm> {
                 GestureDetector(
                   onTap: () { _customEmojiCtrl.text = e; _notifyCustom(); },
                   child: Container(
-                    margin: const EdgeInsets.only(right: 6),
+                    margin: EdgeInsets.only(right: 6),
                     width: 36, height: 36,
                     decoration: BoxDecoration(
-                      color: _customEmojiCtrl.text == e ? SanctumTheme.goldDim : SanctumTheme.bg2,
+                      color: _customEmojiCtrl.text == e ? SanctumTheme.goldDim : context.sc.bg2,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: _customEmojiCtrl.text == e ? SanctumTheme.gold.withValues(alpha: 0.4) : SanctumTheme.border),
+                      border: Border.all(color: _customEmojiCtrl.text == e ? SanctumTheme.gold.withValues(alpha: 0.4) : context.sc.border),
                     ),
                     child: Center(child: Text(e, style: const TextStyle(fontSize: 18))),
                   ),
@@ -616,10 +618,10 @@ class _FinanceFormState extends State<_FinanceForm> {
         ),
       ],
 
-      const SizedBox(height: 12),
+      SizedBox(height: 12),
       SanctumField(label: S.description, hint: '', controller: widget.descCtrl),
-      const SizedBox(height: 12),
-      Text('日期', style: const TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
+      SizedBox(height: 12),
+      Text('日期', style: TextStyle(fontSize: 12, color: context.sc.textTertiary)),
       const SizedBox(height: 6),
       GestureDetector(
         onTap: () async {
@@ -630,7 +632,7 @@ class _FinanceFormState extends State<_FinanceForm> {
             lastDate: DateTime(2099),
             builder: (c, ch) => Theme(
               data: Theme.of(c).copyWith(
-                colorScheme: const ColorScheme.dark(primary: SanctumTheme.gold, surface: SanctumTheme.bg2),
+                colorScheme: ColorScheme.dark(primary: SanctumTheme.gold, surface: context.sc.bg2),
               ),
               child: ch!,
             ),
@@ -638,19 +640,19 @@ class _FinanceFormState extends State<_FinanceForm> {
           if (picked != null) widget.onDateChange?.call(picked);
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
-            color: SanctumTheme.bg3,
+            color: context.sc.bg3,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: SanctumTheme.border),
+            border: Border.all(color: context.sc.border),
           ),
           child: Row(children: [
-            const Icon(Icons.calendar_today, size: 14, color: SanctumTheme.textTertiary),
-            const SizedBox(width: 8),
+            Icon(Icons.calendar_today, size: 14, color: context.sc.textTertiary),
+            SizedBox(width: 8),
             Text(DateFormat('yyyy年M月d日').format(widget.date),
-              style: const TextStyle(color: SanctumTheme.textPrimary, fontSize: 14)),
-            const Spacer(),
-            const Icon(Icons.chevron_right, size: 16, color: SanctumTheme.textTertiary),
+              style: TextStyle(color: context.sc.textPrimary, fontSize: 14)),
+            Spacer(),
+            Icon(Icons.chevron_right, size: 16, color: context.sc.textTertiary),
           ]),
         ),
       ),
@@ -669,10 +671,10 @@ class _SummaryCard extends StatelessWidget {
   const _SummaryCard({required this.label, required this.amount, required this.color, required this.prefix});
   @override
   Widget build(BuildContext context) => Expanded(child: Container(
-    padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
-    decoration: BoxDecoration(color: SanctumTheme.bg2, borderRadius: BorderRadius.circular(10), border: Border.all(color: SanctumTheme.border, width: 0.5)),
+    padding: EdgeInsets.fromLTRB(10, 10, 10, 12),
+    decoration: BoxDecoration(color: context.sc.bg2, borderRadius: BorderRadius.circular(10), border: Border.all(color: context.sc.border, width: 0.5)),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: const TextStyle(fontSize: 10, color: SanctumTheme.textTertiary)),
+      Text(label, style: TextStyle(fontSize: 10, color: context.sc.textTertiary)),
       const SizedBox(height: 4),
       Text('$prefix${NumberFormat('#,##0.##').format(amount)}',
         style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: color)),
@@ -715,11 +717,11 @@ class _FinanceCardState extends State<_FinanceCard> {
               child: Center(child: Text(record.isIncome ? '↑' : '↓',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: amtColor))),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Flexible(child: Text(S.catLabel(record.category),
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: SanctumTheme.textPrimary))),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: context.sc.textPrimary))),
                 if (hasItems) ...[
                   const SizedBox(width: 6),
                   Container(
@@ -730,48 +732,48 @@ class _FinanceCardState extends State<_FinanceCard> {
                       border: Border.all(color: SanctumTheme.gold.withValues(alpha: 0.25)),
                     ),
                     child: Text('${lineItems.length}項',
-                      style: const TextStyle(fontSize: 9, color: SanctumTheme.gold2, fontWeight: FontWeight.w600)),
+                      style: TextStyle(fontSize: 9, color: SanctumTheme.gold2, fontWeight: FontWeight.w600)),
                   ),
                 ],
               ]),
               if (record.description.isNotEmpty)
-                Text(record.description, style: const TextStyle(fontSize: 12, color: SanctumTheme.textTertiary),
+                Text(record.description, style: TextStyle(fontSize: 12, color: context.sc.textTertiary),
                   maxLines: 1, overflow: TextOverflow.ellipsis),
             ])),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Text('${record.isIncome ? '+' : '−'}${record.currency} ${NumberFormat('#,##0.##').format(record.amount)}',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: amtColor)),
               Text(DateFormat('MMM d').format(record.date),
-                style: const TextStyle(fontSize: 11, color: SanctumTheme.textTertiary)),
+                style: TextStyle(fontSize: 11, color: context.sc.textTertiary)),
             ]),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Column(mainAxisAlignment: MainAxisAlignment.center, children: [
               if (hasItems)
                 Icon(_expanded ? Icons.expand_less : Icons.expand_more,
-                  size: 16, color: SanctumTheme.textTertiary),
+                  size: 16, color: context.sc.textTertiary),
               GestureDetector(onTap: widget.onEdit,
-                child: const Icon(Icons.edit_outlined, size: 16, color: SanctumTheme.textTertiary)),
-              const SizedBox(height: 6),
+                child: Icon(Icons.edit_outlined, size: 16, color: context.sc.textTertiary)),
+              SizedBox(height: 6),
               GestureDetector(onTap: widget.onDelete,
-                child: const Icon(Icons.delete_outline, size: 16, color: SanctumTheme.textTertiary)),
+                child: Icon(Icons.delete_outline, size: 16, color: context.sc.textTertiary)),
             ]),
           ]),
         ),
 
         // Line items expansion
         if (_expanded && hasItems) ...[
-          const SizedBox(height: 8),
-          const Divider(height: 1, color: SanctumTheme.border),
-          const SizedBox(height: 6),
+          SizedBox(height: 8),
+          Divider(height: 1, color: context.sc.border),
+          SizedBox(height: 6),
           ...lineItems.map((item) => Padding(
-            padding: const EdgeInsets.fromLTRB(46, 3, 0, 3),
+            padding: EdgeInsets.fromLTRB(46, 3, 0, 3),
             child: Row(children: [
-              Container(width: 4, height: 4, margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(color: SanctumTheme.textTertiary.withValues(alpha: 0.5), shape: BoxShape.circle)),
+              Container(width: 4, height: 4, margin: EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(color: context.sc.textTertiary.withValues(alpha: 0.5), shape: BoxShape.circle)),
               Expanded(child: Text(item.name,
-                style: const TextStyle(fontSize: 12, color: SanctumTheme.textSecondary))),
+                style: TextStyle(fontSize: 12, color: context.sc.textSecondary))),
               Text(NumberFormat('#,##0.##').format(item.amount),
-                style: const TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
+                style: TextStyle(fontSize: 12, color: context.sc.textTertiary)),
             ]),
           )),
           const SizedBox(height: 4),
@@ -790,15 +792,15 @@ class _Chip extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
     child: AnimatedContainer(
-      duration: const Duration(milliseconds: 150),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      duration: Duration(milliseconds: 150),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: active ? SanctumTheme.goldDim : SanctumTheme.bg2,
+        color: active ? SanctumTheme.goldDim : context.sc.bg2,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: active ? SanctumTheme.gold.withValues(alpha: 0.3) : SanctumTheme.border),
+        border: Border.all(color: active ? SanctumTheme.gold.withValues(alpha: 0.3) : context.sc.border),
       ),
       child: Text(label, style: TextStyle(fontSize: 12,
-        color: active ? SanctumTheme.gold2 : SanctumTheme.textTertiary,
+        color: active ? SanctumTheme.gold2 : context.sc.textTertiary,
         fontWeight: active ? FontWeight.w500 : FontWeight.w400)),
     ),
   );
@@ -814,17 +816,17 @@ class _TypeBtn extends StatelessWidget {
   Widget build(BuildContext context) => Expanded(child: GestureDetector(
     onTap: onTap,
     child: AnimatedContainer(
-      duration: const Duration(milliseconds: 150),
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      duration: Duration(milliseconds: 150),
+      padding: EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-        color: active ? color.withValues(alpha: 0.12) : SanctumTheme.bg3,
+        color: active ? color.withValues(alpha: 0.12) : context.sc.bg3,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: active ? color.withValues(alpha: 0.4) : SanctumTheme.border),
+        border: Border.all(color: active ? color.withValues(alpha: 0.4) : context.sc.border),
       ),
       child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Text(emoji, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: active ? color : SanctumTheme.textTertiary)),
-        const SizedBox(width: 6),
-        Text(label, style: TextStyle(fontSize: 13, color: active ? color : SanctumTheme.textTertiary, fontWeight: active ? FontWeight.w500 : FontWeight.w400)),
+        Text(emoji, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: active ? color : context.sc.textTertiary)),
+        SizedBox(width: 6),
+        Text(label, style: TextStyle(fontSize: 13, color: active ? color : context.sc.textTertiary, fontWeight: active ? FontWeight.w500 : FontWeight.w400)),
       ]),
     ),
   ));
@@ -847,30 +849,30 @@ class _DateFilterBar extends StatelessWidget {
 
   void _pick(BuildContext ctx) {
     final now = DateTime.now();
-    showModalBottomSheet(context: ctx, backgroundColor: SanctumTheme.bg2,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+    showModalBottomSheet(context: ctx, backgroundColor: ctx.sc.bg2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const SizedBox(height: 12),
-        ListTile(leading: const Icon(Icons.all_inclusive, color: SanctumTheme.gold, size: 18), title: const Text('全部時間', style: TextStyle(color: SanctumTheme.textPrimary, fontSize: 14)), onTap: () { Navigator.pop(ctx); onClear(); }),
-        const Divider(color: SanctumTheme.border, height: 1),
+        SizedBox(height: 12),
+        ListTile(leading: Icon(Icons.all_inclusive, color: SanctumTheme.gold, size: 18), title: Text('全部時間', style: TextStyle(color: ctx.sc.textPrimary, fontSize: 14)), onTap: () { Navigator.pop(ctx); onClear(); }),
+        Divider(color: ctx.sc.border, height: 1),
         SizedBox(height: 200, child: ListView.builder(itemCount: 24, itemBuilder: (_, i) {
           final d = DateTime(now.year, now.month - i);
           final sel = filterYear == d.year && filterMonth == d.month;
           return ListTile(
-            title: Text('${d.year}年${d.month}月', style: TextStyle(color: sel ? SanctumTheme.gold : SanctumTheme.textPrimary, fontWeight: sel ? FontWeight.w600 : FontWeight.w400, fontSize: 14)),
-            trailing: sel ? const Icon(Icons.check, color: SanctumTheme.gold, size: 16) : null,
+            title: Text('${d.year}年${d.month}月', style: TextStyle(color: sel ? SanctumTheme.gold : ctx.sc.textPrimary, fontWeight: sel ? FontWeight.w600 : FontWeight.w400, fontSize: 14)),
+            trailing: sel ? Icon(Icons.check, color: SanctumTheme.gold, size: 16) : null,
             onTap: () { Navigator.pop(ctx); onMonthSelected(d.year, d.month); },
           );
         })),
-        const Divider(color: SanctumTheme.border, height: 1),
+        Divider(color: ctx.sc.border, height: 1),
         ListTile(
-          leading: const Icon(Icons.date_range, color: SanctumTheme.textSecondary, size: 18),
-          title: const Text('自訂日期區間', style: TextStyle(color: SanctumTheme.textPrimary, fontSize: 14)),
+          leading: Icon(Icons.date_range, color: ctx.sc.textSecondary, size: 18),
+          title: Text('自訂日期區間', style: TextStyle(color: ctx.sc.textPrimary, fontSize: 14)),
           onTap: () async {
             Navigator.pop(ctx);
             if (!ctx.mounted) return;
             final r = await showDateRangePicker(context: ctx, firstDate: DateTime(2020), lastDate: DateTime.now(),
-              builder: (c, ch) => Theme(data: Theme.of(c).copyWith(colorScheme: const ColorScheme.dark(primary: SanctumTheme.gold, surface: SanctumTheme.bg2)), child: ch!));
+              builder: (c, ch) => Theme(data: Theme.of(c).copyWith(colorScheme: ColorScheme.dark(primary: SanctumTheme.gold, surface: ctx.sc.bg2)), child: ch!));
             if (r != null) onCustomRange(r.start, r.end);
           },
         ),
@@ -883,12 +885,12 @@ class _DateFilterBar extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(
     onTap: () => _pick(context),
     child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: _active ? SanctumTheme.goldDim : SanctumTheme.bg3, borderRadius: BorderRadius.circular(20), border: Border.all(color: _active ? SanctumTheme.gold.withValues(alpha: 0.4) : SanctumTheme.border)),
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(color: _active ? SanctumTheme.goldDim : context.sc.bg3, borderRadius: BorderRadius.circular(20), border: Border.all(color: _active ? SanctumTheme.gold.withValues(alpha: 0.4) : context.sc.border)),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.calendar_today, size: 12, color: _active ? SanctumTheme.gold : SanctumTheme.textTertiary),
-        const SizedBox(width: 6),
-        Text(_label, style: TextStyle(fontSize: 12, color: _active ? SanctumTheme.gold2 : SanctumTheme.textTertiary)),
+        Icon(Icons.calendar_today, size: 12, color: _active ? SanctumTheme.gold : context.sc.textTertiary),
+        SizedBox(width: 6),
+        Text(_label, style: TextStyle(fontSize: 12, color: _active ? SanctumTheme.gold2 : context.sc.textTertiary)),
         if (_active) ...[const SizedBox(width: 6), GestureDetector(onTap: onClear, child: const Icon(Icons.close, size: 12, color: SanctumTheme.gold))],
       ]),
     ),
