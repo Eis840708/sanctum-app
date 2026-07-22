@@ -33,3 +33,8 @@ Thumbs.db
 # Sensitive
 *.env
 secrets.dart
+
+# Build / run logs (generated artefacts — DEV-P0-03-B2-0b)
+apk_log.txt
+web_help.txt
+web_log.txt
