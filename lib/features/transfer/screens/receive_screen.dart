@@ -73,38 +73,40 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final sc = context.sc;
     return Scaffold(
-      backgroundColor: SanctumTheme.bg,
+      backgroundColor: sc.bg,
       appBar: AppBar(
-        backgroundColor: SanctumTheme.bg2,
+        backgroundColor: sc.bg2,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: SanctumTheme.textSecondary),
+          icon: Icon(Icons.arrow_back, color: sc.textSecondary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('新手機：接收資料',
-            style: TextStyle(fontSize: 16, color: SanctumTheme.textPrimary)),
+        title: Text('新手機：接收資料',
+            style: TextStyle(fontSize: 16, color: sc.textPrimary)),
       ),
       body: switch (_state) {
-        _RecvState.scan       => _buildScanner(),
+        _RecvState.scan        => _buildScanner(),
         _RecvState.downloading => _buildDownloading(),
-        _RecvState.done       => _buildDone(),
-        _RecvState.error      => _buildError(),
+        _RecvState.done        => _buildDone(),
+        _RecvState.error       => _buildError(),
       },
     );
   }
 
   Widget _buildScanner() {
+    final sc = context.sc;
     return Column(children: [
       // Warning banner
       Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         color: SanctumTheme.amber.withValues(alpha: 0.1),
-        child: Row(children: [
-          const Icon(Icons.wifi, size: 13, color: SanctumTheme.amber),
-          const SizedBox(width: 8),
-          const Expanded(child: Text(
+        child: const Row(children: [
+          Icon(Icons.wifi, size: 13, color: SanctumTheme.amber),
+          SizedBox(width: 8),
+          Expanded(child: Text(
             '請確保已連接至與舊手機相同的 WiFi 網路',
             style: TextStyle(fontSize: 11, color: SanctumTheme.amber),
           )),
@@ -163,11 +165,11 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('將鏡頭對準舊手機上的 QR 碼',
-                style: TextStyle(fontSize: 14, color: SanctumTheme.textPrimary)),
+              Text('將鏡頭對準舊手機上的 QR 碼',
+                style: TextStyle(fontSize: 14, color: sc.textPrimary)),
               const SizedBox(height: 6),
-              const Text('QR 碼有 5 分鐘效期，請盡快掃描',
-                style: TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
+              Text('QR 碼有 5 分鐘效期，請盡快掃描',
+                style: TextStyle(fontSize: 12, color: sc.textTertiary)),
             ],
           ),
         ),
@@ -176,6 +178,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   }
 
   Widget _buildDownloading() {
+    final sc = context.sc;
     final pct = (_progress * 100).toInt();
     return Center(
       child: Padding(
@@ -194,9 +197,9 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
            .shimmer(duration: 1200.ms, color: SanctumTheme.blue.withValues(alpha: 0.3)),
 
           const SizedBox(height: 24),
-          const Text('正在加密傳輸中…',
+          Text('正在加密傳輸中…',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,
-                color: SanctumTheme.textPrimary)),
+                color: sc.textPrimary)),
           const SizedBox(height: 24),
 
           // Progress bar
@@ -204,7 +207,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: _progress > 0 ? _progress : null,
-              backgroundColor: SanctumTheme.bg2,
+              backgroundColor: sc.bg2,
               valueColor: const AlwaysStoppedAnimation(SanctumTheme.blue),
               minHeight: 6,
             ),
@@ -212,76 +215,82 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
           const SizedBox(height: 8),
           Text(
             _progress > 0 ? '$pct%' : '連接中…',
-            style: const TextStyle(fontSize: 12, color: SanctumTheme.textTertiary),
+            style: TextStyle(fontSize: 12, color: sc.textTertiary),
           ),
           const SizedBox(height: 20),
-          const Text('請勿離開此頁面',
-            style: TextStyle(fontSize: 11, color: SanctumTheme.textTertiary)),
+          Text('請勿離開此頁面',
+            style: TextStyle(fontSize: 11, color: sc.textTertiary)),
         ]),
       ),
     );
   }
 
-  Widget _buildDone() => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          width: 72, height: 72,
-          decoration: BoxDecoration(
-            color: SanctumTheme.green.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-            border: Border.all(color: SanctumTheme.green.withValues(alpha: 0.4), width: 2),
+  Widget _buildDone() {
+    final sc = context.sc;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 72, height: 72,
+            decoration: BoxDecoration(
+              color: SanctumTheme.green.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+              border: Border.all(color: SanctumTheme.green.withValues(alpha: 0.4), width: 2),
+            ),
+            child: const Icon(Icons.check_rounded, size: 36, color: SanctumTheme.green),
+          ).animate().scale(duration: 400.ms, curve: Curves.elasticOut),
+
+          const SizedBox(height: 20),
+          Text('接收成功！',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600,
+                color: sc.textPrimary)),
+          const SizedBox(height: 8),
+          Text('資料已匯入本機\n請返回並用相同主密鑰解鎖金庫',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: sc.textSecondary, height: 1.6)),
+          const SizedBox(height: 32),
+
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: SanctumTheme.green,
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              // Pop back to root so lock screen is shown
+              Navigator.of(context).popUntil((r) => r.isFirst);
+            },
+            child: const Text('前往解鎖金庫',
+              style: TextStyle(fontWeight: FontWeight.w600)),
           ),
-          child: const Icon(Icons.check_rounded, size: 36, color: SanctumTheme.green),
-        ).animate().scale(duration: 400.ms, curve: Curves.elasticOut),
+        ]),
+      ),
+    );
+  }
 
-        const SizedBox(height: 20),
-        const Text('接收成功！',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600,
-              color: SanctumTheme.textPrimary)),
-        const SizedBox(height: 8),
-        const Text('資料已匯入本機\n請返回並用相同主密鑰解鎖金庫',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 13, color: SanctumTheme.textSecondary, height: 1.6)),
-        const SizedBox(height: 32),
-
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: SanctumTheme.green,
-            foregroundColor: Colors.black,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+  Widget _buildError() {
+    final sc = context.sc;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.error_outline, size: 48, color: SanctumTheme.red),
+          const SizedBox(height: 16),
+          Text(_error.isNotEmpty ? _error : '接收失敗',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, color: sc.textSecondary, height: 1.6)),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.qr_code_scanner, size: 16),
+            label: const Text('重新掃描'),
+            onPressed: _retry,
           ),
-          onPressed: () {
-            // Pop back to root so lock screen is shown
-            Navigator.of(context).popUntil((r) => r.isFirst);
-          },
-          child: const Text('前往解鎖金庫',
-            style: TextStyle(fontWeight: FontWeight.w600)),
-        ),
-      ]),
-    ),
-  );
-
-  Widget _buildError() => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.error_outline, size: 48, color: SanctumTheme.red),
-        const SizedBox(height: 16),
-        Text(_error.isNotEmpty ? _error : '接收失敗',
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 14, color: SanctumTheme.textSecondary, height: 1.6)),
-        const SizedBox(height: 24),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.qr_code_scanner, size: 16),
-          label: const Text('重新掃描'),
-          onPressed: _retry,
-        ),
-      ]),
-    ),
-  );
+        ]),
+      ),
+    );
+  }
 }
 
 /// Custom painter for QR scanning overlay (darkened corners + bright scan rect)

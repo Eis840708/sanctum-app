@@ -9,13 +9,14 @@ class TransferScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sc = context.sc;
     return Scaffold(
-      backgroundColor: SanctumTheme.bg,
+      backgroundColor: sc.bg,
       appBar: AppBar(
-        backgroundColor: SanctumTheme.bg2,
+        backgroundColor: sc.bg2,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: SanctumTheme.textSecondary),
+          icon: Icon(Icons.arrow_back, color: sc.textSecondary),
           onPressed: () => Navigator.pop(context),
         ),
         title: ShaderMask(
@@ -40,17 +41,17 @@ class TransferScreen extends StatelessWidget {
               child: Row(children: [
                 const Icon(Icons.shield_outlined, size: 14, color: SanctumTheme.green),
                 const SizedBox(width: 8),
-                Expanded(child: Text(
+                const Expanded(child: Text(
                   '雙層加密傳輸  •  一次性密鑰  •  區域網路  •  5 分鐘自動過期',
-                  style: const TextStyle(fontSize: 11, color: SanctumTheme.green, height: 1.4),
+                  style: TextStyle(fontSize: 11, color: SanctumTheme.green, height: 1.4),
                 )),
               ]),
             ).animate().fadeIn(duration: 400.ms),
 
             const SizedBox(height: 28),
 
-            const Text('選擇角色', style: TextStyle(
-              fontSize: 11, color: SanctumTheme.textTertiary, letterSpacing: 0.8)),
+            Text('選擇角色', style: TextStyle(
+              fontSize: 11, color: sc.textTertiary, letterSpacing: 0.8)),
             const SizedBox(height: 12),
 
             // Send card
@@ -83,18 +84,18 @@ class TransferScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: SanctumTheme.bg2,
+                color: sc.bg2,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: SanctumTheme.border, width: 0.5),
+                border: Border.all(color: sc.border, width: 0.5),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(children: [
-                    Icon(Icons.info_outline, size: 14, color: SanctumTheme.textTertiary),
-                    SizedBox(width: 6),
+                  Row(children: [
+                    Icon(Icons.info_outline, size: 14, color: sc.textTertiary),
+                    const SizedBox(width: 6),
                     Text('運作原理', style: TextStyle(
-                      fontSize: 12, color: SanctumTheme.textTertiary, fontWeight: FontWeight.w600)),
+                      fontSize: 12, color: sc.textTertiary, fontWeight: FontWeight.w600)),
                   ]),
                   const SizedBox(height: 12),
                   ...[
@@ -108,15 +109,15 @@ class TransferScreen extends StatelessWidget {
                     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(item.$1, style: const TextStyle(fontSize: 13)),
                       const SizedBox(width: 8),
-                      Expanded(child: Text(item.$2, style: const TextStyle(
-                        fontSize: 12, color: SanctumTheme.textSecondary, height: 1.5))),
+                      Expanded(child: Text(item.$2, style: TextStyle(
+                        fontSize: 12, color: sc.textSecondary, height: 1.5))),
                     ]),
                   )),
-                  const Divider(color: SanctumTheme.border, height: 20),
-                  Row(children: [
-                    const Icon(Icons.wifi, size: 13, color: SanctumTheme.amber),
-                    const SizedBox(width: 6),
-                    const Expanded(child: Text(
+                  Divider(color: sc.border, height: 20),
+                  const Row(children: [
+                    Icon(Icons.wifi, size: 13, color: SanctumTheme.amber),
+                    SizedBox(width: 6),
+                    Expanded(child: Text(
                       '兩部手機需連接同一 WiFi 網路（或舊手機開 WiFi 熱點，新手機連接）',
                       style: TextStyle(fontSize: 11, color: SanctumTheme.amber, height: 1.4),
                     )),
@@ -148,57 +149,60 @@ class _RoleCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: SanctumTheme.bg2,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: SanctumTheme.border),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(
-            width: 40, height: 40,
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, size: 20, color: iconColor),
-          ),
-          const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: const TextStyle(
-              fontSize: 15, fontWeight: FontWeight.w600, color: SanctumTheme.textPrimary)),
-            const SizedBox(height: 2),
-            Text(subtitle, style: const TextStyle(
-              fontSize: 12, color: SanctumTheme.textTertiary)),
-          ])),
-          Icon(Icons.arrow_forward_ios, size: 14, color: iconColor.withValues(alpha: 0.6)),
-        ]),
-        const SizedBox(height: 14),
-        const Divider(color: SanctumTheme.border, height: 1),
-        const SizedBox(height: 12),
-        Row(children: steps.asMap().entries.map((e) => Expanded(
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: sc.bg2,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: sc.border),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
             Container(
-              width: 18, height: 18,
+              width: 40, height: 40,
               decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(9),
+                color: iconColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Center(child: Text('${e.key + 1}', style: TextStyle(
-                fontSize: 10, color: iconColor, fontWeight: FontWeight.w600))),
+              child: Icon(icon, size: 20, color: iconColor),
             ),
-            const SizedBox(width: 6),
-            Expanded(child: Text(e.value, style: const TextStyle(
-              fontSize: 10, color: SanctumTheme.textSecondary, height: 1.3))),
-            if (e.key < steps.length - 1)
-              const Icon(Icons.chevron_right, size: 12, color: SanctumTheme.border),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: TextStyle(
+                fontSize: 15, fontWeight: FontWeight.w600, color: sc.textPrimary)),
+              const SizedBox(height: 2),
+              Text(subtitle, style: TextStyle(
+                fontSize: 12, color: sc.textTertiary)),
+            ])),
+            Icon(Icons.arrow_forward_ios, size: 14, color: iconColor.withValues(alpha: 0.6)),
           ]),
-        )).toList()),
-      ]),
-    ),
-  );
+          const SizedBox(height: 14),
+          Divider(color: sc.border, height: 1),
+          const SizedBox(height: 12),
+          Row(children: steps.asMap().entries.map((e) => Expanded(
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                width: 18, height: 18,
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Center(child: Text('${e.key + 1}', style: TextStyle(
+                  fontSize: 10, color: iconColor, fontWeight: FontWeight.w600))),
+              ),
+              const SizedBox(width: 6),
+              Expanded(child: Text(e.value, style: TextStyle(
+                fontSize: 10, color: sc.textSecondary, height: 1.3))),
+              if (e.key < steps.length - 1)
+                Icon(Icons.chevron_right, size: 12, color: sc.border),
+            ]),
+          )).toList()),
+        ]),
+      ),
+    );
+  }
 }

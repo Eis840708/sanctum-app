@@ -74,24 +74,25 @@ class _SendScreenState extends State<SendScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final sc = context.sc;
     return Scaffold(
-      backgroundColor: SanctumTheme.bg,
+      backgroundColor: sc.bg,
       appBar: AppBar(
-        backgroundColor: SanctumTheme.bg2,
+        backgroundColor: sc.bg2,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: SanctumTheme.textSecondary),
+          icon: Icon(Icons.arrow_back, color: sc.textSecondary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('舊手機：傳送資料',
-            style: TextStyle(fontSize: 16, color: SanctumTheme.textPrimary)),
+        title: Text('舊手機：傳送資料',
+            style: TextStyle(fontSize: 16, color: sc.textPrimary)),
       ),
       body: switch (_state) {
-        _SendState.loading => const Center(
+        _SendState.loading => Center(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              CircularProgressIndicator(color: SanctumTheme.gold, strokeWidth: 2),
-              SizedBox(height: 16),
-              Text('正在準備加密資料…', style: TextStyle(color: SanctumTheme.textTertiary, fontSize: 13)),
+              const CircularProgressIndicator(color: SanctumTheme.gold, strokeWidth: 2),
+              const SizedBox(height: 16),
+              Text('正在準備加密資料…', style: TextStyle(color: sc.textTertiary, fontSize: 13)),
             ])),
         _SendState.ready  => _buildReady(),
         _SendState.done   => _buildDone(),
@@ -101,6 +102,7 @@ class _SendScreenState extends State<SendScreen> {
   }
 
   Widget _buildReady() {
+    final sc = context.sc;
     final urgent = _secs < 60;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -109,7 +111,7 @@ class _SendScreenState extends State<SendScreen> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: SanctumTheme.bg2,
+            color: sc.bg2,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: SanctumTheme.gold.withValues(alpha: 0.3)),
             boxShadow: [BoxShadow(
@@ -181,8 +183,8 @@ class _SendScreenState extends State<SendScreen> {
               ).animate(onPlay: (c) => c.repeat())
                .fadeOut(duration: 800.ms).then().fadeIn(duration: 800.ms),
               const SizedBox(width: 8),
-              const Text('等待新手機掃描…',
-                style: TextStyle(fontSize: 12, color: SanctumTheme.textSecondary)),
+              Text('等待新手機掃描…',
+                style: TextStyle(fontSize: 12, color: sc.textSecondary)),
             ]),
           ]),
         ).animate().fadeIn(duration: 400.ms),
@@ -200,58 +202,64 @@ class _SendScreenState extends State<SendScreen> {
 
         // Refresh button
         TextButton.icon(
-          icon: const Icon(Icons.refresh, size: 16, color: SanctumTheme.textTertiary),
-          label: const Text('重新生成', style: TextStyle(fontSize: 13, color: SanctumTheme.textTertiary)),
+          icon: Icon(Icons.refresh, size: 16, color: sc.textTertiary),
+          label: Text('重新生成', style: TextStyle(fontSize: 13, color: sc.textTertiary)),
           onPressed: _start,
         ),
       ]),
     );
   }
 
-  Widget _buildDone() => Center(
-    child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Container(
-        width: 72, height: 72,
-        decoration: BoxDecoration(
-          color: SanctumTheme.green.withValues(alpha: 0.1),
-          shape: BoxShape.circle,
-          border: Border.all(color: SanctumTheme.green.withValues(alpha: 0.4), width: 2),
-        ),
-        child: const Icon(Icons.check_rounded, size: 36, color: SanctumTheme.green),
-      ).animate().scale(duration: 400.ms, curve: Curves.elasticOut),
-      const SizedBox(height: 20),
-      const Text('傳送成功！', style: TextStyle(
-        fontSize: 20, fontWeight: FontWeight.w600, color: SanctumTheme.textPrimary)),
-      const SizedBox(height: 8),
-      const Text('新手機已接收所有資料\n請在新手機輸入相同主密鑰解鎖',
-        textAlign: TextAlign.center,
-        style: TextStyle(fontSize: 13, color: SanctumTheme.textSecondary, height: 1.6)),
-      const SizedBox(height: 32),
-      ElevatedButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text('完成'),
-      ),
-    ]),
-  );
-
-  Widget _buildError() => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(24),
+  Widget _buildDone() {
+    final sc = context.sc;
+    return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.error_outline, size: 48, color: SanctumTheme.red),
-        const SizedBox(height: 16),
-        Text(_error.isNotEmpty ? _error : '連接失敗',
+        Container(
+          width: 72, height: 72,
+          decoration: BoxDecoration(
+            color: SanctumTheme.green.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+            border: Border.all(color: SanctumTheme.green.withValues(alpha: 0.4), width: 2),
+          ),
+          child: const Icon(Icons.check_rounded, size: 36, color: SanctumTheme.green),
+        ).animate().scale(duration: 400.ms, curve: Curves.elasticOut),
+        const SizedBox(height: 20),
+        Text('傳送成功！', style: TextStyle(
+          fontSize: 20, fontWeight: FontWeight.w600, color: sc.textPrimary)),
+        const SizedBox(height: 8),
+        Text('新手機已接收所有資料\n請在新手機輸入相同主密鑰解鎖',
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 14, color: SanctumTheme.textSecondary, height: 1.6)),
-        const SizedBox(height: 24),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.refresh, size: 16),
-          label: const Text('重試'),
-          onPressed: _start,
+          style: TextStyle(fontSize: 13, color: sc.textSecondary, height: 1.6)),
+        const SizedBox(height: 32),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('完成'),
         ),
       ]),
-    ),
-  );
+    );
+  }
+
+  Widget _buildError() {
+    final sc = context.sc;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.error_outline, size: 48, color: SanctumTheme.red),
+          const SizedBox(height: 16),
+          Text(_error.isNotEmpty ? _error : '連接失敗',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, color: sc.textSecondary, height: 1.6)),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.refresh, size: 16),
+            label: const Text('重試'),
+            onPressed: _start,
+          ),
+        ]),
+      ),
+    );
+  }
 }
 
 class _Steps extends StatelessWidget {
@@ -259,29 +267,32 @@ class _Steps extends StatelessWidget {
   const _Steps({required this.steps});
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: SanctumTheme.bg2,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: SanctumTheme.border, width: 0.5),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('操作步驟', style: TextStyle(
-          fontSize: 11, color: SanctumTheme.textTertiary, letterSpacing: 0.5)),
-        const SizedBox(height: 12),
-        ...steps.map((s) => Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(s.$1, style: const TextStyle(fontSize: 16)),
-            const SizedBox(width: 10),
-            Expanded(child: Text(s.$2, style: const TextStyle(
-              fontSize: 12, color: SanctumTheme.textSecondary, height: 1.5))),
-          ]),
-        )),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: sc.bg2,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: sc.border, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('操作步驟', style: TextStyle(
+            fontSize: 11, color: sc.textTertiary, letterSpacing: 0.5)),
+          const SizedBox(height: 12),
+          ...steps.map((s) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(s.$1, style: const TextStyle(fontSize: 16)),
+              const SizedBox(width: 10),
+              Expanded(child: Text(s.$2, style: TextStyle(
+                fontSize: 12, color: sc.textSecondary, height: 1.5))),
+            ]),
+          )),
+        ],
+      ),
+    );
+  }
 }
