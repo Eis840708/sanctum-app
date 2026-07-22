@@ -89,13 +89,14 @@ class _DiaryScreenState extends ConsumerState<DiaryScreen> {
   }
 
   void _showAddSheet(BuildContext context) {
+    final sc = context.sc;
     final titleCtrl   = TextEditingController();
     final contentCtrl = TextEditingController();
     String selectedMood = '😊';
 
     showModalBottomSheet(
       context: context, isScrollControlled: true,
-      backgroundColor: SanctumTheme.bg2,
+      backgroundColor: sc.bg2,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSt) => _DiaryForm(
@@ -123,6 +124,7 @@ class _DiaryScreenState extends ConsumerState<DiaryScreen> {
   }
 
   void _showEditSheet(BuildContext context, DiaryEntry entry) async {
+    final sc = context.sc;
     final titleCtrl   = TextEditingController(text: entry.title);
     final content     = await vaultService.decryptDiaryContent(entry);
     final contentCtrl = TextEditingController(text: content);
@@ -139,7 +141,7 @@ class _DiaryScreenState extends ConsumerState<DiaryScreen> {
     if (!context.mounted) return;
     showModalBottomSheet(
       context: context, isScrollControlled: true,
-      backgroundColor: SanctumTheme.bg2,
+      backgroundColor: sc.bg2,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSt) => _DiaryForm(
@@ -208,24 +210,25 @@ class _DiaryFormState extends State<_DiaryForm> {
   }
 
   void _showImageSourceSheet() {
+    final sc = context.sc;
     showModalBottomSheet(
       context: context,
-      backgroundColor: SanctumTheme.bg2,
+      backgroundColor: sc.bg2,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
         const SizedBox(height: 12),
-        Container(width: 36, height: 4, decoration: BoxDecoration(color: SanctumTheme.border2, borderRadius: BorderRadius.circular(2))),
+        Container(width: 36, height: 4, decoration: BoxDecoration(color: sc.border2, borderRadius: BorderRadius.circular(2))),
         const SizedBox(height: 12),
         ListTile(
           leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: SanctumTheme.goldDim, borderRadius: BorderRadius.circular(8)),
             child: const Icon(Icons.camera_alt_outlined, color: SanctumTheme.gold, size: 18)),
-          title: const Text('拍攝照片', style: TextStyle(color: SanctumTheme.textPrimary, fontSize: 14)),
+          title: Text(S.get('takePhoto'), style: TextStyle(color: sc.textPrimary, fontSize: 14)),
           onTap: () { Navigator.pop(ctx); _pickImage(ImageSource.camera); },
         ),
         ListTile(
-          leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: SanctumTheme.bg3, borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.photo_library_outlined, color: SanctumTheme.textSecondary, size: 18)),
-          title: const Text('從相簿選擇', style: TextStyle(color: SanctumTheme.textPrimary, fontSize: 14)),
+          leading: Container(width: 36, height: 36, decoration: BoxDecoration(color: sc.bg3, borderRadius: BorderRadius.circular(8)),
+            child: Icon(Icons.photo_library_outlined, color: sc.textSecondary, size: 18)),
+          title: Text(S.get('fromGallery'), style: TextStyle(color: sc.textPrimary, fontSize: 14)),
           onTap: () { Navigator.pop(ctx); _pickImage(ImageSource.gallery); },
         ),
         const SizedBox(height: 8),
@@ -234,104 +237,107 @@ class _DiaryFormState extends State<_DiaryForm> {
   }
 
   @override
-  Widget build(BuildContext context) => SingleChildScrollView(
-    padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 24),
-    child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: SanctumTheme.border2, borderRadius: BorderRadius.circular(2)))),
-      const SizedBox(height: 16),
-      Text(widget.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: SanctumTheme.textPrimary)),
-      const SizedBox(height: 16),
-      SanctumField(label: S.title, hint: '', controller: widget.titleCtrl),
-      Text(S.mood, style: const TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
-      const SizedBox(height: 8),
-      SizedBox(height: 44, child: ListView(scrollDirection: Axis.horizontal,
-        children: MoodOptions.all.map((m) => GestureDetector(
-          onTap: () => widget.onMoodChange(m['emoji']!),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            margin: const EdgeInsets.only(right: 8),
-            width: 44, height: 44,
-            decoration: BoxDecoration(
-              color: widget.selectedMood == m['emoji'] ? SanctumTheme.amberDim : SanctumTheme.bg3,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: widget.selectedMood == m['emoji'] ? SanctumTheme.amber.withValues(alpha: 0.4) : SanctumTheme.border),
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return SingleChildScrollView(
+      padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 24),
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: sc.border2, borderRadius: BorderRadius.circular(2)))),
+        const SizedBox(height: 16),
+        Text(widget.title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: sc.textPrimary)),
+        const SizedBox(height: 16),
+        SanctumField(label: S.title, hint: '', controller: widget.titleCtrl),
+        Text(S.mood, style: TextStyle(fontSize: 12, color: sc.textTertiary)),
+        const SizedBox(height: 8),
+        SizedBox(height: 44, child: ListView(scrollDirection: Axis.horizontal,
+          children: MoodOptions.all.map((m) => GestureDetector(
+            onTap: () => widget.onMoodChange(m['emoji']!),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              margin: const EdgeInsets.only(right: 8),
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                color: widget.selectedMood == m['emoji'] ? SanctumTheme.amberDim : sc.bg3,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: widget.selectedMood == m['emoji'] ? SanctumTheme.amber.withValues(alpha: 0.4) : sc.border),
+              ),
+              child: Center(child: Text(m['emoji']!, style: const TextStyle(fontSize: 22))),
             ),
-            child: Center(child: Text(m['emoji']!, style: const TextStyle(fontSize: 22))),
-          ),
-        )).toList(),
-      )),
-      const SizedBox(height: 12),
-      Text(S.content, style: const TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
-      const SizedBox(height: 5),
-      TextFormField(
-        controller: widget.contentCtrl, maxLines: 5,
-        style: const TextStyle(color: SanctumTheme.textPrimary, fontSize: 14, height: 1.6),
-        decoration: const InputDecoration(hintText: ''),
-      ),
-      const SizedBox(height: 12),
+          )).toList(),
+        )),
+        const SizedBox(height: 12),
+        Text(S.content, style: TextStyle(fontSize: 12, color: sc.textTertiary)),
+        const SizedBox(height: 5),
+        TextFormField(
+          controller: widget.contentCtrl, maxLines: 5,
+          style: TextStyle(color: sc.textPrimary, fontSize: 14, height: 1.6),
+          decoration: const InputDecoration(hintText: ''),
+        ),
+        const SizedBox(height: 12),
 
-      // ── Image section ─────────────────────────────────────
-      Row(children: [
-        const Text('圖片', style: TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
-        const Spacer(),
-        GestureDetector(
-          onTap: _showImageSourceSheet,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: SanctumTheme.goldDim,
-              borderRadius: BorderRadius.circular(7),
-              border: Border.all(color: SanctumTheme.gold.withValues(alpha: 0.25)),
+        // ── Image section ─────────────────────────────────────
+        Row(children: [
+          Text(S.get('images'), style: TextStyle(fontSize: 12, color: sc.textTertiary)),
+          const Spacer(),
+          GestureDetector(
+            onTap: _showImageSourceSheet,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: SanctumTheme.goldDim,
+                borderRadius: BorderRadius.circular(7),
+                border: Border.all(color: SanctumTheme.gold.withValues(alpha: 0.25)),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.add_photo_alternate_outlined, size: 13, color: SanctumTheme.gold),
+                const SizedBox(width: 5),
+                Text(S.get('attachImage'), style: const TextStyle(fontSize: 12, color: SanctumTheme.gold, fontWeight: FontWeight.w500)),
+              ]),
             ),
-            child: const Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.add_photo_alternate_outlined, size: 13, color: SanctumTheme.gold),
-              SizedBox(width: 5),
-              Text('附加圖片', style: TextStyle(fontSize: 12, color: SanctumTheme.gold, fontWeight: FontWeight.w500)),
-            ]),
+          ),
+        ]),
+        if (_images.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 80,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _images.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (_, i) => Stack(children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.memory(_images[i], width: 80, height: 80, fit: BoxFit.cover),
+                ),
+                Positioned(top: 2, right: 2, child: GestureDetector(
+                  onTap: () => setState(() => _images.removeAt(i)),
+                  child: Container(
+                    width: 20, height: 20,
+                    decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                    child: const Icon(Icons.close, size: 12, color: Colors.white),
+                  ),
+                )),
+              ]),
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _saving ? null : () async {
+              setState(() => _saving = true);
+              await widget.onSave(_images);
+              if (mounted) setState(() => _saving = false);
+            },
+            child: _saving
+              ? SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: sc.bg))
+              : Text(S.save),
           ),
         ),
       ]),
-      if (_images.isNotEmpty) ...[
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 80,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: _images.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
-            itemBuilder: (_, i) => Stack(children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.memory(_images[i], width: 80, height: 80, fit: BoxFit.cover),
-              ),
-              Positioned(top: 2, right: 2, child: GestureDetector(
-                onTap: () => setState(() => _images.removeAt(i)),
-                child: Container(
-                  width: 20, height: 20,
-                  decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                  child: const Icon(Icons.close, size: 12, color: Colors.white),
-                ),
-              )),
-            ]),
-          ),
-        ),
-      ],
-      const SizedBox(height: 16),
-      SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: _saving ? null : () async {
-            setState(() => _saving = true);
-            await widget.onSave(_images);
-            if (mounted) setState(() => _saving = false);
-          },
-          child: _saving
-            ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: SanctumTheme.bg))
-            : Text(S.save),
-        ),
-      ),
-    ]),
-  );
+    );
+  }
 }
 
 class _DiaryCard extends StatelessWidget {
@@ -340,39 +346,42 @@ class _DiaryCard extends StatelessWidget {
   const _DiaryCard({required this.entry, required this.onTap, required this.onEdit, required this.onDelete});
 
   @override
-  Widget build(BuildContext context) => VaultCard(
-    accentColor: SanctumTheme.amber, onTap: onTap,
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        Text(entry.mood, style: const TextStyle(fontSize: 24)),
-        const SizedBox(width: 10),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(entry.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: SanctumTheme.textPrimary)),
-          Text(DateFormat('MMM d, yyyy').format(entry.createdAt), style: const TextStyle(fontSize: 11, color: SanctumTheme.textTertiary)),
-        ])),
-        GestureDetector(onTap: onEdit, child: Container(
-          padding: const EdgeInsets.all(6), margin: const EdgeInsets.only(right: 6),
-          decoration: BoxDecoration(color: SanctumTheme.bg3, borderRadius: BorderRadius.circular(6)),
-          child: const Icon(Icons.edit_outlined, size: 14, color: SanctumTheme.textTertiary),
-        )),
-        GestureDetector(onTap: onDelete, child: Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(color: SanctumTheme.bg3, borderRadius: BorderRadius.circular(6)),
-          child: const Icon(Icons.delete_outline, size: 14, color: SanctumTheme.textTertiary),
-        )),
-      ]),
-      const SizedBox(height: 8),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(color: SanctumTheme.bg3, borderRadius: BorderRadius.circular(6)),
-        child: Row(children: [
-          const Icon(Icons.lock_outline, size: 12, color: SanctumTheme.textTertiary),
-          const SizedBox(width: 6),
-          Text(S.tapToRead, style: const TextStyle(fontSize: 11, color: SanctumTheme.textTertiary)),
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return VaultCard(
+      accentColor: SanctumTheme.amber, onTap: onTap,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Text(entry.mood, style: const TextStyle(fontSize: 24)),
+          const SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(entry.title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: sc.textPrimary)),
+            Text(DateFormat('MMM d, yyyy').format(entry.createdAt), style: TextStyle(fontSize: 11, color: sc.textTertiary)),
+          ])),
+          GestureDetector(onTap: onEdit, child: Container(
+            padding: const EdgeInsets.all(6), margin: const EdgeInsets.only(right: 6),
+            decoration: BoxDecoration(color: sc.bg3, borderRadius: BorderRadius.circular(6)),
+            child: Icon(Icons.edit_outlined, size: 14, color: sc.textTertiary),
+          )),
+          GestureDetector(onTap: onDelete, child: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(color: sc.bg3, borderRadius: BorderRadius.circular(6)),
+            child: Icon(Icons.delete_outline, size: 14, color: sc.textTertiary),
+          )),
         ]),
-      ),
-    ]),
-  );
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(color: sc.bg3, borderRadius: BorderRadius.circular(6)),
+          child: Row(children: [
+            Icon(Icons.lock_outline, size: 12, color: sc.textTertiary),
+            const SizedBox(width: 6),
+            Text(S.tapToRead, style: TextStyle(fontSize: 11, color: sc.textTertiary)),
+          ]),
+        ),
+      ]),
+    );
+  }
 }
 
 class _DetailView extends ConsumerStatefulWidget {
@@ -415,54 +424,57 @@ class _DetailViewState extends ConsumerState<_DetailView> {
   }
 
   @override
-  Widget build(BuildContext context) => CustomScrollView(slivers: [
-    SliverToBoxAdapter(child: Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: Row(children: [
-        GestureDetector(onTap: widget.onBack, child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: BoxDecoration(color: SanctumTheme.bg3, borderRadius: BorderRadius.circular(8), border: Border.all(color: SanctumTheme.border)),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.arrow_back, size: 14, color: SanctumTheme.textSecondary),
-            const SizedBox(width: 6),
-            Text(S.diary, style: const TextStyle(fontSize: 13, color: SanctumTheme.textSecondary)),
-          ]),
-        )),
-        const Spacer(),
-        Text(widget.entry.mood, style: const TextStyle(fontSize: 24)),
-      ]),
-    )),
-    SliverPadding(
-      padding: const EdgeInsets.all(16),
-      sliver: SliverToBoxAdapter(child: Container(
-        decoration: BoxDecoration(color: SanctumTheme.bg2, borderRadius: BorderRadius.circular(14), border: Border.all(color: SanctumTheme.border)),
-        padding: const EdgeInsets.all(20),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(widget.entry.title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: SanctumTheme.textPrimary)),
-          const SizedBox(height: 4),
-          Text(DateFormat('EEEE, MMMM d yyyy').format(widget.entry.createdAt),
-              style: const TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
-          const Divider(height: 24, color: SanctumTheme.border),
-          if (_loading) const Center(child: CircularProgressIndicator(color: SanctumTheme.gold))
-          else Text(_content ?? '', style: const TextStyle(fontSize: 15, color: SanctumTheme.textSecondary, height: 1.8)),
-          if (!_loading && _images.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8, runSpacing: 8,
-              children: _images.map((b) => ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.memory(b, width: 96, height: 96, fit: BoxFit.cover),
-              )).toList(),
-            ),
-          ],
-          const SizedBox(height: 12),
-          TextButton.icon(
-            onPressed: _pickImage,
-            icon: const Icon(Icons.add_photo_alternate_outlined, size: 16, color: SanctumTheme.gold),
-            label: const Text('附加圖片', style: TextStyle(fontSize: 12, color: SanctumTheme.gold)),
-          ),
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return CustomScrollView(slivers: [
+      SliverToBoxAdapter(child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        child: Row(children: [
+          GestureDetector(onTap: widget.onBack, child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(color: sc.bg3, borderRadius: BorderRadius.circular(8), border: Border.all(color: sc.border)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.arrow_back, size: 14, color: sc.textSecondary),
+              const SizedBox(width: 6),
+              Text(S.diary, style: TextStyle(fontSize: 13, color: sc.textSecondary)),
+            ]),
+          )),
+          const Spacer(),
+          Text(widget.entry.mood, style: const TextStyle(fontSize: 24)),
         ]),
       )),
-    ),
-  ]);
+      SliverPadding(
+        padding: const EdgeInsets.all(16),
+        sliver: SliverToBoxAdapter(child: Container(
+          decoration: BoxDecoration(color: sc.bg2, borderRadius: BorderRadius.circular(14), border: Border.all(color: sc.border)),
+          padding: const EdgeInsets.all(20),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(widget.entry.title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: sc.textPrimary)),
+            const SizedBox(height: 4),
+            Text(DateFormat('EEEE, MMMM d yyyy').format(widget.entry.createdAt),
+                style: TextStyle(fontSize: 12, color: sc.textTertiary)),
+            Divider(height: 24, color: sc.border),
+            if (_loading) const Center(child: CircularProgressIndicator(color: SanctumTheme.gold))
+            else Text(_content ?? '', style: TextStyle(fontSize: 15, color: sc.textSecondary, height: 1.8)),
+            if (!_loading && _images.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8, runSpacing: 8,
+                children: _images.map((b) => ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.memory(b, width: 96, height: 96, fit: BoxFit.cover),
+                )).toList(),
+              ),
+            ],
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: _pickImage,
+              icon: const Icon(Icons.add_photo_alternate_outlined, size: 16, color: SanctumTheme.gold),
+              label: Text(S.get('attachImage'), style: const TextStyle(fontSize: 12, color: SanctumTheme.gold)),
+            ),
+          ]),
+        )),
+      ),
+    ]);
+  }
 }

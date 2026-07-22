@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../core/i18n/strings.dart';
+import '../../core/i18n/lang_provider.dart';
 import '../../core/models/models.dart';
 import '../../core/storage/providers.dart';
 import '../../shared/theme/app_theme.dart';
@@ -37,14 +39,15 @@ class _DashboardState extends ConsumerState<DashboardScreen> {
 
   String get _greeting {
     final h = DateTime.now().hour;
-    if (h < 5)  return '夜深了';
-    if (h < 12) return '早安';
-    if (h < 18) return '午安';
-    return '晚安';
+    if (h < 5)  return S.greetingNight;
+    if (h < 12) return S.greetingMorning;
+    if (h < 18) return S.greetingAfternoon;
+    return S.greetingEvening;
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(langProvider);
     final passwords = ref.watch(passwordsNotifierProvider);
     final diary     = ref.watch(diaryNotifierProvider);
     final finance   = ref.watch(financeNotifierProvider);
@@ -71,16 +74,16 @@ class _DashboardState extends ConsumerState<DashboardScreen> {
       // ── Header ─────────────────────────────────────────────
       SliverToBoxAdapter(
         child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-          decoration: const BoxDecoration(
-            color: SanctumTheme.bg2,
-            border: Border(bottom: BorderSide(color: SanctumTheme.border, width: 0.5)),
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 24),
+          decoration: BoxDecoration(
+            color: context.sc.bg2,
+            border: Border(bottom: BorderSide(color: context.sc.border, width: 0.5)),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(_greeting, style: const TextStyle(
-                    fontSize: 13, color: SanctumTheme.textTertiary)),
+                Text(_greeting, style: TextStyle(
+                    fontSize: 13, color: context.sc.textTertiary)),
                 const SizedBox(height: 2),
                 ShaderMask(
                   shaderCallback: (b) => SanctumDecor.goldGradient().createShader(b),
@@ -103,7 +106,7 @@ class _DashboardState extends ConsumerState<DashboardScreen> {
                     decoration: const BoxDecoration(color: SanctumTheme.green, shape: BoxShape.circle),
                   ).animate(onPlay: (c) => c.repeat()).fadeOut(duration: 900.ms).then().fadeIn(duration: 900.ms),
                   const SizedBox(width: 6),
-                  const Text('已加密保護', style: TextStyle(
+                  Text(S.encrypted, style: TextStyle(
                       fontSize: 11, color: SanctumTheme.green)),
                 ]),
               ),
@@ -114,13 +117,13 @@ class _DashboardState extends ConsumerState<DashboardScreen> {
             Row(children: [
               _StatChip(
                 icon: Icons.key_rounded, color: SanctumTheme.purple,
-                value: '${pwList.length}', label: '密碼',
+                value: '${pwList.length}', label: S.passwords,
                 onTap: widget.onGoPasswords,
               ),
               const SizedBox(width: 10),
               _StatChip(
                 icon: Icons.menu_book_rounded, color: SanctumTheme.blue,
-                value: '${diList.length}', label: '日記',
+                value: '${diList.length}', label: S.diary,
                 onTap: widget.onGoDiary,
               ),
               const SizedBox(width: 10),
@@ -130,7 +133,7 @@ class _DashboardState extends ConsumerState<DashboardScreen> {
                     ? (monthIncome - monthExpense >= 0 ? '+' : '') +
                       NumberFormat('#,##0').format(monthIncome - monthExpense)
                     : '—',
-                label: '本月結餘',
+                label: S.netBalance,
                 onTap: widget.onGoFinance,
               ),
             ]),
@@ -152,10 +155,10 @@ class _DashboardState extends ConsumerState<DashboardScreen> {
           // ── Recent passwords ────────────────────────────────
           if (pwList.isNotEmpty) ...[
             _SectionTitle(
-              title: '最近密碼',
+              title: S.recentPasswords,
               action: TextButton(
                 onPressed: widget.onGoPasswords,
-                child: const Text('查看全部', style: TextStyle(
+                child: Text(S.viewAll, style: TextStyle(
                     fontSize: 12, color: SanctumTheme.gold)),
               ),
             ),
@@ -169,10 +172,10 @@ class _DashboardState extends ConsumerState<DashboardScreen> {
           // ── Recent diary ────────────────────────────────────
           if (diList.isNotEmpty) ...[
             _SectionTitle(
-              title: '最近日記',
+              title: S.recentDiary,
               action: TextButton(
                 onPressed: widget.onGoDiary,
-                child: const Text('查看全部', style: TextStyle(
+                child: Text(S.viewAll, style: TextStyle(
                     fontSize: 12, color: SanctumTheme.gold)),
               ),
             ),
@@ -183,10 +186,10 @@ class _DashboardState extends ConsumerState<DashboardScreen> {
           // ── Finance summary ──────────────────────────────────
           if (fiList.isNotEmpty) ...[
             _SectionTitle(
-              title: '本月財務',
+              title: S.recentFinance,
               action: TextButton(
                 onPressed: widget.onGoFinance,
-                child: const Text('查看全部', style: TextStyle(
+                child: Text(S.viewAll, style: TextStyle(
                     fontSize: 12, color: SanctumTheme.gold)),
               ),
             ),
@@ -217,11 +220,11 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
+    padding: EdgeInsets.only(bottom: 10),
     child: Row(children: [
-      Text(title, style: const TextStyle(
+      Text(title, style: TextStyle(
           fontSize: 13, fontWeight: FontWeight.w600,
-          color: SanctumTheme.textSecondary, letterSpacing: 0.2)),
+          color: context.sc.textSecondary, letterSpacing: 0.2)),
       const Spacer(),
       if (action != null) action!,
     ]),
@@ -254,11 +257,11 @@ class _StatChip extends StatelessWidget {
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Icon(icon, size: 18, color: color),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(value, style: TextStyle(
               fontSize: 18, fontWeight: FontWeight.w700, color: color)),
-          Text(label, style: const TextStyle(
-              fontSize: 10, color: SanctumTheme.textTertiary)),
+          Text(label, style: TextStyle(
+              fontSize: 10, color: context.sc.textTertiary)),
         ]),
       ),
     ),
@@ -283,18 +286,18 @@ class _SecurityCard extends StatelessWidget {
       ),
       child: Row(children: [
         const Icon(Icons.security_outlined, size: 20, color: SanctumTheme.red),
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('密碼安全提示', style: TextStyle(
+          Text(S.securityTip, style: TextStyle(
               fontSize: 13, fontWeight: FontWeight.w600, color: SanctumTheme.red)),
-          const SizedBox(height: 3),
+          SizedBox(height: 3),
           Text([
-            if (expired > 0) '$expired 個密碼已過期（>180天）',
-            if (warning > 0) '$warning 個密碼建議更新（>90天）',
-          ].join('，'), style: const TextStyle(
-              fontSize: 11, color: SanctumTheme.textSecondary, height: 1.4)),
+            if (expired > 0) S.pwExpired(expired),
+            if (warning > 0) S.pwWarning(warning),
+          ].join('  '), style: TextStyle(
+              fontSize: 11, color: context.sc.textSecondary, height: 1.4)),
         ])),
-        const Icon(Icons.arrow_forward_ios, size: 12, color: SanctumTheme.textTertiary),
+        Icon(Icons.arrow_forward_ios, size: 12, color: context.sc.textTertiary),
       ]),
     ).animate().fadeIn(duration: 400.ms, delay: 100.ms).slideY(begin: 0.05),
   );
@@ -307,11 +310,11 @@ class _RecentPasswordRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
     decoration: BoxDecoration(
-      color: SanctumTheme.bg2,
+      color: context.sc.bg2,
       borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: SanctumTheme.border, width: 0.5),
+      border: Border.all(color: context.sc.border, width: 0.5),
     ),
     child: Row(children: [
       Container(
@@ -322,27 +325,27 @@ class _RecentPasswordRow extends StatelessWidget {
         ),
         alignment: Alignment.center,
         child: Text(entry.site.isNotEmpty ? entry.site[0].toUpperCase() : '?',
-            style: const TextStyle(fontSize: 14, color: SanctumTheme.purple,
+            style: TextStyle(fontSize: 14, color: SanctumTheme.purple,
                 fontWeight: FontWeight.w600)),
       ),
-      const SizedBox(width: 10),
+      SizedBox(width: 10),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(entry.site, style: const TextStyle(
-            fontSize: 13, fontWeight: FontWeight.w500, color: SanctumTheme.textPrimary)),
-        Text(entry.username, style: const TextStyle(
-            fontSize: 11, color: SanctumTheme.textTertiary)),
+        Text(entry.site, style: TextStyle(
+            fontSize: 13, fontWeight: FontWeight.w500, color: context.sc.textPrimary)),
+        Text(entry.username, style: TextStyle(
+            fontSize: 11, color: context.sc.textTertiary)),
       ])),
       Text(_relDays(entry.updatedAt),
-          style: const TextStyle(fontSize: 11, color: SanctumTheme.textTertiary)),
+          style: TextStyle(fontSize: 11, color: context.sc.textTertiary)),
     ]),
   ).animate().fadeIn(duration: 350.ms).slideX(begin: -0.03);
 
   String _relDays(DateTime dt) {
     final d = DateTime.now().difference(dt).inDays;
-    if (d == 0) return '今天';
-    if (d == 1) return '昨天';
-    if (d < 30) return '$d 天前';
-    return '${d ~/ 30} 個月前';
+    if (d == 0) return S.today;
+    if (d == 1) return S.yesterday;
+    if (d < 30) return S.daysAgo(d);
+    return S.monthsAgo(d ~/ 30);
   }
 }
 
@@ -353,21 +356,21 @@ class _RecentDiaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(14),
+    padding: EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: SanctumTheme.bg2,
+      color: context.sc.bg2,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: SanctumTheme.border, width: 0.5),
+      border: Border.all(color: context.sc.border, width: 0.5),
     ),
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(entry.mood, style: const TextStyle(fontSize: 24)),
-      const SizedBox(width: 12),
+      Text(entry.mood, style: TextStyle(fontSize: 24)),
+      SizedBox(width: 12),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(entry.title, style: const TextStyle(
-            fontSize: 13, fontWeight: FontWeight.w500, color: SanctumTheme.textPrimary)),
-        const SizedBox(height: 3),
-        Text(DateFormat('M月d日').format(entry.createdAt),
-            style: const TextStyle(fontSize: 11, color: SanctumTheme.textTertiary)),
+        Text(entry.title, style: TextStyle(
+            fontSize: 13, fontWeight: FontWeight.w500, color: context.sc.textPrimary)),
+        SizedBox(height: 3),
+        Text(DateFormat('M/d').format(entry.createdAt),
+            style: TextStyle(fontSize: 11, color: context.sc.textTertiary)),
       ])),
     ]),
   ).animate().fadeIn(duration: 350.ms);
@@ -383,19 +386,19 @@ class _MonthFinanceCard extends StatelessWidget {
     final net = income - expense;
     final fmt = NumberFormat('#,##0.##');
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: SanctumTheme.bg2,
+        color: context.sc.bg2,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: SanctumTheme.border, width: 0.5),
+        border: Border.all(color: context.sc.border, width: 0.5),
       ),
       child: Row(children: [
-        Expanded(child: _FinStat(label: '收入', value: '+${fmt.format(income)}', color: SanctumTheme.green)),
-        Container(width: 0.5, height: 40, color: SanctumTheme.border),
-        Expanded(child: _FinStat(label: '支出', value: '−${fmt.format(expense)}', color: SanctumTheme.red)),
-        Container(width: 0.5, height: 40, color: SanctumTheme.border),
+        Expanded(child: _FinStat(label: S.income, value: '+${fmt.format(income)}', color: SanctumTheme.green)),
+        Container(width: 0.5, height: 40, color: context.sc.border),
+        Expanded(child: _FinStat(label: S.expense, value: '−${fmt.format(expense)}', color: SanctumTheme.red)),
+        Container(width: 0.5, height: 40, color: context.sc.border),
         Expanded(child: _FinStat(
-          label: '結餘',
+          label: S.netBalance,
           value: '${net >= 0 ? '+' : '−'}${fmt.format(net.abs())}',
           color: net >= 0 ? SanctumTheme.blue : SanctumTheme.red,
         )),
@@ -411,7 +414,7 @@ class _FinStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(children: [
-    Text(label, style: const TextStyle(fontSize: 10, color: SanctumTheme.textTertiary)),
+    Text(label, style: TextStyle(fontSize: 10, color: context.sc.textTertiary)),
     const SizedBox(height: 4),
     Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: color)),
   ]);
@@ -425,20 +428,20 @@ class _WelcomeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(20),
+    padding: EdgeInsets.all(20),
     decoration: BoxDecoration(
-      color: SanctumTheme.bg2,
+      color: context.sc.bg2,
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: SanctumTheme.border),
+      border: Border.all(color: context.sc.border),
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('開始使用 Sanctum', style: TextStyle(
-          fontSize: 16, fontWeight: FontWeight.w600, color: SanctumTheme.textPrimary)),
+      Text(S.welcomeTitle, style: TextStyle(
+          fontSize: 16, fontWeight: FontWeight.w600, color: context.sc.textPrimary)),
       const SizedBox(height: 16),
       ...[
-        (Icons.key_rounded, SanctumTheme.purple, '儲存第一個密碼', onGoPasswords),
-        (Icons.menu_book_rounded, SanctumTheme.blue, '寫下第一篇日記', onGoDiary),
-        (Icons.account_balance_wallet_rounded, SanctumTheme.green, '記錄第一筆交易', onGoFinance),
+        (Icons.key_rounded, SanctumTheme.purple, S.welcomeAddPw, onGoPasswords),
+        (Icons.menu_book_rounded, SanctumTheme.blue, S.welcomeAddDiary, onGoDiary),
+        (Icons.account_balance_wallet_rounded, SanctumTheme.green, S.welcomeAddFinance, onGoFinance),
       ].map((item) => Padding(
         padding: const EdgeInsets.only(bottom: 10),
         child: GestureDetector(
@@ -452,12 +455,12 @@ class _WelcomeCard extends StatelessWidget {
               ),
               child: Icon(item.$1, size: 18, color: item.$2),
             ),
-            const SizedBox(width: 12),
-            Text(item.$3, style: const TextStyle(
-                fontSize: 13, color: SanctumTheme.textSecondary)),
-            const Spacer(),
+            SizedBox(width: 12),
+            Text(item.$3, style: TextStyle(
+                fontSize: 13, color: context.sc.textSecondary)),
+            Spacer(),
             Icon(Icons.arrow_forward_ios, size: 12,
-                color: SanctumTheme.textTertiary.withValues(alpha: 0.5)),
+                color: context.sc.textTertiary.withValues(alpha: 0.5)),
           ]),
         ),
       )),

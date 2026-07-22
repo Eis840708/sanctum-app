@@ -93,34 +93,34 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       // Search bar — only show when NOT in delegate mode
       if (!inDelegateMode)
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: Row(children: [
             Expanded(child: TextField(
               controller: _ctrl,
               autofocus: false,
-              style: const TextStyle(color: SanctumTheme.textPrimary, fontSize: 15),
+              style: TextStyle(color: context.sc.textPrimary, fontSize: 15),
               decoration: InputDecoration(
                 hintText: S.searchHint,
-                prefixIcon: const Icon(Icons.search, color: SanctumTheme.textTertiary, size: 20),
+                prefixIcon: Icon(Icons.search, color: context.sc.textTertiary, size: 20),
                 suffixIcon: _query.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear, size: 16, color: SanctumTheme.textTertiary),
+                      icon: Icon(Icons.clear, size: 16, color: context.sc.textTertiary),
                       onPressed: () { _ctrl.clear(); setState(() => _query = ''); },
                     )
                   : null,
               ),
             )),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             GestureDetector(
               onTap: _load,
               child: Container(
-                padding: const EdgeInsets.all(10),
+                padding: EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: SanctumTheme.bg3,
+                  color: context.sc.bg3,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: SanctumTheme.border),
+                  border: Border.all(color: context.sc.border),
                 ),
-                child: const Icon(Icons.refresh, size: 18, color: SanctumTheme.textTertiary),
+                child: Icon(Icons.refresh, size: 18, color: context.sc.textTertiary),
               ),
             ),
           ]),
@@ -129,13 +129,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       // Status row
       if (_query.isNotEmpty)
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: Row(children: [
             Text(
               _loaded
                 ? '${S.searchResults} · $_total  (${S.passwords}: ${_filteredPw.length}  ${S.diary}: ${_filteredDiary.length}  ${S.finance}: ${_filteredFinance.length})'
                 : '載入中...',
-              style: const TextStyle(fontSize: 11, color: SanctumTheme.textTertiary),
+              style: TextStyle(fontSize: 11, color: context.sc.textTertiary),
             ),
           ]),
         ),
@@ -166,28 +166,28 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   Widget _emptySearch() => Center(
     child: Column(mainAxisSize: MainAxisSize.min, children: [
-      const Text('🔍', style: TextStyle(fontSize: 40)),
-      const SizedBox(height: 12),
-      Text(S.search, style: const TextStyle(fontSize: 16, color: SanctumTheme.textSecondary, fontWeight: FontWeight.w500)),
-      const SizedBox(height: 6),
-      Text(S.searchHint, style: const TextStyle(fontSize: 13, color: SanctumTheme.textTertiary)),
-      const SizedBox(height: 20),
+      Text('🔍', style: TextStyle(fontSize: 40)),
+      SizedBox(height: 12),
+      Text(S.search, style: TextStyle(fontSize: 16, color: context.sc.textSecondary, fontWeight: FontWeight.w500)),
+      SizedBox(height: 6),
+      Text(S.searchHint, style: TextStyle(fontSize: 13, color: context.sc.textTertiary)),
+      SizedBox(height: 20),
       // Debug: show counts
       Text('已載入: 密碼${_passwords.length} 日記${_diary.length} 財務${_finance.length}',
-        style: const TextStyle(fontSize: 10, color: SanctumTheme.textTertiary)),
+        style: TextStyle(fontSize: 10, color: context.sc.textTertiary)),
     ]),
   );
 
   Widget _noResults() => Center(
     child: Column(mainAxisSize: MainAxisSize.min, children: [
-      const Text('😶', style: TextStyle(fontSize: 40)),
-      const SizedBox(height: 12),
-      Text(S.noResults, style: const TextStyle(fontSize: 16, color: SanctumTheme.textSecondary)),
-      const SizedBox(height: 6),
-      Text('查詢: "$_query"', style: const TextStyle(fontSize: 11, color: SanctumTheme.textTertiary)),
-      const SizedBox(height: 4),
+      Text('😶', style: TextStyle(fontSize: 40)),
+      SizedBox(height: 12),
+      Text(S.noResults, style: TextStyle(fontSize: 16, color: context.sc.textSecondary)),
+      SizedBox(height: 6),
+      Text('查詢: "$_query"', style: TextStyle(fontSize: 11, color: context.sc.textTertiary)),
+      SizedBox(height: 4),
       Text('日記標題: ${_diary.map((d) => d.title).join(", ")}',
-        style: const TextStyle(fontSize: 10, color: SanctumTheme.textTertiary)),
+        style: TextStyle(fontSize: 10, color: context.sc.textTertiary)),
     ]),
   );
 }
@@ -199,16 +199,16 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 16, bottom: 8),
+    padding: EdgeInsets.only(top: 16, bottom: 8),
     child: Row(children: [
-      Text(emoji, style: const TextStyle(fontSize: 14)),
-      const SizedBox(width: 6),
-      Text(label.toUpperCase(), style: const TextStyle(fontSize: 11, color: SanctumTheme.textTertiary, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
-      const SizedBox(width: 6),
+      Text(emoji, style: TextStyle(fontSize: 14)),
+      SizedBox(width: 6),
+      Text(label.toUpperCase(), style: TextStyle(fontSize: 11, color: context.sc.textTertiary, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+      SizedBox(width: 6),
       Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-        decoration: BoxDecoration(color: SanctumTheme.bg3, borderRadius: BorderRadius.circular(8)),
-        child: Text('$count', style: const TextStyle(fontSize: 10, color: SanctumTheme.textTertiary)),
+        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+        decoration: BoxDecoration(color: context.sc.bg3, borderRadius: BorderRadius.circular(8)),
+        child: Text('$count', style: TextStyle(fontSize: 10, color: context.sc.textTertiary)),
       ),
     ]),
   );
@@ -220,33 +220,33 @@ class _PwResult extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.only(bottom: 8),
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(color: SanctumTheme.bg2, borderRadius: BorderRadius.circular(10), border: Border.all(color: SanctumTheme.border)),
+    margin: EdgeInsets.only(bottom: 8),
+    padding: EdgeInsets.all(12),
+    decoration: BoxDecoration(color: context.sc.bg2, borderRadius: BorderRadius.circular(10), border: Border.all(color: context.sc.border)),
     child: Row(children: [
       Container(
         width: 32, height: 32,
         decoration: BoxDecoration(color: SanctumTheme.purpleDim, borderRadius: BorderRadius.circular(7)),
         child: Center(child: Text(entry.site[0].toUpperCase(),
-          style: const TextStyle(color: SanctumTheme.purple, fontWeight: FontWeight.w600))),
+          style: TextStyle(color: SanctumTheme.purple, fontWeight: FontWeight.w600))),
       ),
-      const SizedBox(width: 10),
+      SizedBox(width: 10),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(entry.site, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: SanctumTheme.textPrimary)),
-        Text(entry.username, style: const TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
+        Text(entry.site, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: context.sc.textPrimary)),
+        Text(entry.username, style: TextStyle(fontSize: 12, color: context.sc.textTertiary)),
       ])),
       GestureDetector(
         onTap: () async {
           final pw = await vaultService.decryptPassword(entry);
           await Clipboard.setData(ClipboardData(text: pw));
           if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(S.copied), backgroundColor: SanctumTheme.bg3,
-              behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2)));
+            SnackBar(content: Text(S.copied), backgroundColor: context.sc.bg3,
+              behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2)));
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(color: SanctumTheme.bg3, borderRadius: BorderRadius.circular(6), border: Border.all(color: SanctumTheme.border)),
-          child: Text(S.copy, style: const TextStyle(fontSize: 11, color: SanctumTheme.textTertiary)),
+          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(color: context.sc.bg3, borderRadius: BorderRadius.circular(6), border: Border.all(color: context.sc.border)),
+          child: Text(S.copy, style: TextStyle(fontSize: 11, color: context.sc.textTertiary)),
         ),
       ),
     ]),
@@ -259,16 +259,16 @@ class _DiaryResult extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.only(bottom: 8),
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(color: SanctumTheme.bg2, borderRadius: BorderRadius.circular(10), border: Border.all(color: SanctumTheme.border)),
+    margin: EdgeInsets.only(bottom: 8),
+    padding: EdgeInsets.all(12),
+    decoration: BoxDecoration(color: context.sc.bg2, borderRadius: BorderRadius.circular(10), border: Border.all(color: context.sc.border)),
     child: Row(children: [
-      Text(entry.mood, style: const TextStyle(fontSize: 22)),
-      const SizedBox(width: 10),
+      Text(entry.mood, style: TextStyle(fontSize: 22)),
+      SizedBox(width: 10),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(entry.title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: SanctumTheme.textPrimary)),
+        Text(entry.title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: context.sc.textPrimary)),
         Text(DateFormat('MMM d, yyyy').format(entry.createdAt),
-          style: const TextStyle(fontSize: 11, color: SanctumTheme.textTertiary)),
+          style: TextStyle(fontSize: 11, color: context.sc.textTertiary)),
       ])),
     ]),
   );
@@ -280,9 +280,9 @@ class _FinanceResult extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.only(bottom: 8),
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(color: SanctumTheme.bg2, borderRadius: BorderRadius.circular(10), border: Border.all(color: SanctumTheme.border)),
+    margin: EdgeInsets.only(bottom: 8),
+    padding: EdgeInsets.all(12),
+    decoration: BoxDecoration(color: context.sc.bg2, borderRadius: BorderRadius.circular(10), border: Border.all(color: context.sc.border)),
     child: Row(children: [
       Container(
         width: 32, height: 32,
@@ -293,11 +293,11 @@ class _FinanceResult extends StatelessWidget {
         child: Center(child: Text(record.isIncome ? '↑' : '↓',
           style: TextStyle(fontWeight: FontWeight.w700, color: record.isIncome ? SanctumTheme.green : SanctumTheme.red))),
       ),
-      const SizedBox(width: 10),
+      SizedBox(width: 10),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(S.catLabel(record.category), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: SanctumTheme.textPrimary)),
+        Text(S.catLabel(record.category), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: context.sc.textPrimary)),
         if (record.description.isNotEmpty)
-          Text(record.description, style: const TextStyle(fontSize: 11, color: SanctumTheme.textTertiary)),
+          Text(record.description, style: TextStyle(fontSize: 11, color: context.sc.textTertiary)),
       ])),
       Text(
         '${record.isIncome ? '+' : '−'}\$${NumberFormat('#,##0.##').format(record.amount)}',
