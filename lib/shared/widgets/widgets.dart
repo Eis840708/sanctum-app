@@ -11,23 +11,26 @@ class SectionHeader extends StatelessWidget {
   const SectionHeader({super.key, required this.title, this.count, this.action});
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 16),
-    child: Row(children: [
-      Text(title, style: const TextStyle(
-        fontSize: 22, fontWeight: FontWeight.w600,
-        color: SanctumTheme.textPrimary, letterSpacing: -0.3,
-      )),
-      if (count != null) ...[
-        const SizedBox(width: 8),
-        Text('$count', style: const TextStyle(
-          fontSize: 14, color: SanctumTheme.textTertiary,
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(children: [
+        Text(title, style: TextStyle(
+          fontSize: 22, fontWeight: FontWeight.w600,
+          color: sc.textPrimary, letterSpacing: -0.3,
         )),
-      ],
-      const Spacer(),
-      if (action != null) action!,
-    ]),
-  );
+        if (count != null) ...[
+          const SizedBox(width: 8),
+          Text('$count', style: TextStyle(
+            fontSize: 14, color: sc.textTertiary,
+          )),
+        ],
+        const Spacer(),
+        if (action != null) action!,
+      ]),
+    );
+  }
 }
 
 // ── Gold add button ───────────────────────────────────────────
@@ -75,44 +78,47 @@ class _VaultCardState extends State<VaultCard> {
   bool _hovered = false;
 
   @override
-  Widget build(BuildContext context) => MouseRegion(
-    onEnter: (_) => setState(() => _hovered = true),
-    onExit:  (_) => setState(() => _hovered = false),
-    child: GestureDetector(
-      onTap: widget.onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        decoration: BoxDecoration(
-          color: SanctumTheme.bg2,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: _hovered ? SanctumTheme.border2 : SanctumTheme.border,
-            width: 0.5,
-          ),
-          boxShadow: _hovered
-            ? [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6))]
-            : [],
-        ),
-        child: Column(children: [
-          // Accent bar at top
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            height: 2,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [widget.accentColor.withValues(alpha: _hovered ? 1 : 0), Colors.transparent],
-              ),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit:  (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          decoration: BoxDecoration(
+            color: sc.bg2,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _hovered ? sc.border2 : sc.border,
+              width: 0.5,
             ),
+            boxShadow: _hovered
+              ? [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6))]
+              : [],
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-            child: widget.child,
-          ),
-        ]),
+          child: Column(children: [
+            // Accent bar at top
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              height: 2,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [widget.accentColor.withValues(alpha: _hovered ? 1 : 0), Colors.transparent],
+                ),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+              child: widget.child,
+            ),
+          ]),
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 // ── Avatar circle ─────────────────────────────────────────────
@@ -164,37 +170,40 @@ class _CopyButtonState extends State<CopyButton> {
   }
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: _copy,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: _copied ? SanctumTheme.greenDim : SanctumTheme.bg3,
-        borderRadius: BorderRadius.circular(5),
-        border: Border.all(
-          color: _copied
-            ? SanctumTheme.green.withValues(alpha: 0.3)
-            : SanctumTheme.border,
-        ),
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(
-          _copied ? Icons.check : Icons.copy_outlined,
-          size: 11,
-          color: _copied ? SanctumTheme.green : SanctumTheme.textTertiary,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          _copied ? 'Copied!' : (widget.label ?? 'Copy'),
-          style: TextStyle(
-            fontSize: 11,
-            color: _copied ? SanctumTheme.green : SanctumTheme.textTertiary,
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return GestureDetector(
+      onTap: _copy,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: _copied ? SanctumTheme.greenDim : sc.bg3,
+          borderRadius: BorderRadius.circular(5),
+          border: Border.all(
+            color: _copied
+              ? SanctumTheme.green.withValues(alpha: 0.3)
+              : sc.border,
           ),
         ),
-      ]),
-    ),
-  );
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(
+            _copied ? Icons.check : Icons.copy_outlined,
+            size: 11,
+            color: _copied ? SanctumTheme.green : sc.textTertiary,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            _copied ? 'Copied!' : (widget.label ?? 'Copy'),
+            style: TextStyle(
+              fontSize: 11,
+              color: _copied ? SanctumTheme.green : sc.textTertiary,
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
 }
 
 // ── Strength bar ──────────────────────────────────────────────
@@ -211,30 +220,33 @@ class PasswordStrengthBar extends StatelessWidget {
   const PasswordStrengthBar({super.key, required this.strength});
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const SizedBox(height: 6),
-      ClipRRect(
-        borderRadius: BorderRadius.circular(2),
-        child: LinearProgressIndicator(
-          value: strength / 5,
-          backgroundColor: SanctumTheme.bg4,
-          valueColor: AlwaysStoppedAnimation(
-            strength == 0 ? Colors.transparent : colors[strength],
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(2),
+          child: LinearProgressIndicator(
+            value: strength / 5,
+            backgroundColor: sc.bg4,
+            valueColor: AlwaysStoppedAnimation(
+              strength == 0 ? Colors.transparent : colors[strength],
+            ),
+            minHeight: 3,
           ),
-          minHeight: 3,
         ),
-      ),
-      if (strength > 0) ...[
-        const SizedBox(height: 4),
-        Text(
-          labels[strength],
-          style: TextStyle(fontSize: 11, color: colors[strength]),
-        ),
+        if (strength > 0) ...[
+          const SizedBox(height: 4),
+          Text(
+            labels[strength],
+            style: TextStyle(fontSize: 11, color: colors[strength]),
+          ),
+        ],
       ],
-    ],
-  );
+    );
+  }
 }
 
 // ── Chip filter ───────────────────────────────────────────────
@@ -248,30 +260,33 @@ class FilterChip extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 150),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: active ? SanctumTheme.goldDim : SanctumTheme.bg2,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: active
-            ? SanctumTheme.gold.withValues(alpha: 0.3)
-            : SanctumTheme.border,
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: active ? SanctumTheme.goldDim : sc.bg2,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: active
+              ? SanctumTheme.gold.withValues(alpha: 0.3)
+              : sc.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: active ? SanctumTheme.gold2 : sc.textTertiary,
+            fontWeight: active ? FontWeight.w500 : FontWeight.w400,
+          ),
         ),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          color: active ? SanctumTheme.gold2 : SanctumTheme.textTertiary,
-          fontWeight: active ? FontWeight.w500 : FontWeight.w400,
-        ),
-      ),
-    ),
-  );
+    );
+  }
 }
 
 // ── Empty state ───────────────────────────────────────────────
@@ -290,27 +305,30 @@ class EmptyState extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(40),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 40)),
-          const SizedBox(height: 16),
-          Text(title, style: const TextStyle(
-            fontSize: 16, color: SanctumTheme.textSecondary,
-            fontWeight: FontWeight.w500,
-          )),
-          const SizedBox(height: 6),
-          Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(
-            fontSize: 13, color: SanctumTheme.textTertiary, height: 1.6,
-          )),
-          if (action != null) ...[const SizedBox(height: 20), action!],
-        ],
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 40)),
+            const SizedBox(height: 16),
+            Text(title, style: TextStyle(
+              fontSize: 16, color: sc.textSecondary,
+              fontWeight: FontWeight.w500,
+            )),
+            const SizedBox(height: 6),
+            Text(subtitle, textAlign: TextAlign.center, style: TextStyle(
+              fontSize: 13, color: sc.textTertiary, height: 1.6,
+            )),
+            if (action != null) ...[const SizedBox(height: 20), action!],
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 // ── Sanctum text field ────────────────────────────────────────
@@ -335,27 +353,30 @@ class SanctumField extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(label, style: const TextStyle(
-        fontSize: 12, color: SanctumTheme.textTertiary, letterSpacing: 0.3,
-      )),
-      const SizedBox(height: 5),
-      TextFormField(
-        controller: controller,
-        obscureText: obscure,
-        maxLines: maxLines,
-        keyboardType: keyboardType,
-        style: const TextStyle(color: SanctumTheme.textPrimary, fontSize: 14),
-        decoration: InputDecoration(
-          hintText: hint,
-          suffixIcon: suffix,
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(
+          fontSize: 12, color: sc.textTertiary, letterSpacing: 0.3,
+        )),
+        const SizedBox(height: 5),
+        TextFormField(
+          controller: controller,
+          obscureText: obscure,
+          maxLines: maxLines,
+          keyboardType: keyboardType,
+          style: TextStyle(color: sc.textPrimary, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: hint,
+            suffixIcon: suffix,
+          ),
         ),
-      ),
-      const SizedBox(height: 12),
-    ],
-  );
+        const SizedBox(height: 12),
+      ],
+    );
+  }
 }
 
 // ── Bottom sheet wrapper ──────────────────────────────────────
@@ -371,7 +392,7 @@ class SanctumBottomSheet extends StatelessWidget {
   }) => showModalBottomSheet<T>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: SanctumTheme.bg2,
+    backgroundColor: context.sc.bg2,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
@@ -379,30 +400,33 @@ class SanctumBottomSheet extends StatelessWidget {
   );
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.only(
-      left: 20, right: 20, top: 20,
-      bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-    ),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Center(child: Container(
-          width: 36, height: 4,
-          decoration: BoxDecoration(
-            color: SanctumTheme.border2,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        )),
-        const SizedBox(height: 16),
-        Text(title, style: const TextStyle(
-          fontSize: 18, fontWeight: FontWeight.w600,
-          color: SanctumTheme.textPrimary,
-        )),
-        const SizedBox(height: 16),
-        ...children,
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20, right: 20, top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(child: Container(
+            width: 36, height: 4,
+            decoration: BoxDecoration(
+              color: sc.border2,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          )),
+          const SizedBox(height: 16),
+          Text(title, style: TextStyle(
+            fontSize: 18, fontWeight: FontWeight.w600,
+            color: sc.textPrimary,
+          )),
+          const SizedBox(height: 16),
+          ...children,
+        ],
+      ),
+    );
+  }
 }
