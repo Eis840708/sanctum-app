@@ -28,13 +28,14 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
   @override
   Widget build(BuildContext context) {
     ref.watch(langProvider);
+    final sc = context.sc;
     return Scaffold(
-      backgroundColor: SanctumTheme.bg,
+      backgroundColor: sc.bg,
       appBar: AppBar(
-        backgroundColor: SanctumTheme.bg2,
-        title: Text(S.backup, style: const TextStyle(color: SanctumTheme.textPrimary)),
+        backgroundColor: sc.bg2,
+        title: Text(S.backup, style: TextStyle(color: sc.textPrimary)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: SanctumTheme.textSecondary),
+          icon: Icon(Icons.arrow_back, color: sc.textSecondary),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -48,7 +49,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [SanctumTheme.gold.withValues(alpha: 0.15), SanctumTheme.bg2],
+                colors: [SanctumTheme.gold.withValues(alpha: 0.15), sc.bg2],
                 begin: Alignment.topLeft, end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
@@ -57,12 +58,12 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Text('🔐', style: TextStyle(fontSize: 32)),
               const SizedBox(height: 12),
-              const Text('2-Layer Backup', style: TextStyle(
-                fontSize: 18, fontWeight: FontWeight.w600, color: SanctumTheme.textPrimary)),
+              Text('2-Layer Backup', style: TextStyle(
+                fontSize: 18, fontWeight: FontWeight.w600, color: sc.textPrimary)),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 'Your vault is encrypted before saving. No one can read it without your master password.',
-                style: TextStyle(fontSize: 13, color: SanctumTheme.textSecondary, height: 1.6)),
+                style: TextStyle(fontSize: 13, color: sc.textSecondary, height: 1.6)),
               if (_lastBackup != null) ...[
                 const SizedBox(height: 10),
                 Row(children: [
@@ -127,19 +128,19 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
             ),
 
           if (_backingUp)
-            const Center(child: Padding(
-              padding: EdgeInsets.all(20),
+            Center(child: Padding(
+              padding: const EdgeInsets.all(20),
               child: Column(children: [
-                CircularProgressIndicator(color: SanctumTheme.gold),
-                SizedBox(height: 12),
-                Text('Encrypting and saving…', style: TextStyle(color: SanctumTheme.textSecondary, fontSize: 13)),
+                const CircularProgressIndicator(color: SanctumTheme.gold),
+                const SizedBox(height: 12),
+                Text('Encrypting and saving…', style: TextStyle(color: sc.textSecondary, fontSize: 13)),
               ]),
             )),
 
           // ── Cloud options (after local done) ─────────────
           if (_localDone && !_cloudDone) ...[
-            const Text('Step 2 — Choose where to share', style: TextStyle(
-              fontSize: 14, fontWeight: FontWeight.w600, color: SanctumTheme.textPrimary)),
+            Text('Step 2 — Choose where to share', style: TextStyle(
+              fontSize: 14, fontWeight: FontWeight.w600, color: sc.textPrimary)),
             const SizedBox(height: 12),
             ..._cloudOptions.map((opt) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -168,8 +169,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                 const Text('備份完成！', style: TextStyle(
                   fontSize: 16, fontWeight: FontWeight.w600, color: SanctumTheme.green)),
                 const SizedBox(height: 6),
-                const Text('本地副本已儲存 · 雲端副本已傳送',
-                  style: TextStyle(fontSize: 13, color: SanctumTheme.textSecondary)),
+                Text('本地副本已儲存 · 雲端副本已傳送',
+                  style: TextStyle(fontSize: 13, color: sc.textSecondary)),
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: () => setState(() { _localDone = false; _cloudDone = false; _error = null; }),
@@ -200,14 +201,14 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
           const SizedBox(height: 32),
 
           // ── Restore section ──────────────────────────────
-          const Text('還原', style: TextStyle(
-            fontSize: 10, color: SanctumTheme.textTertiary, letterSpacing: 0.8)),
+          Text('還原', style: TextStyle(
+            fontSize: 10, color: sc.textTertiary, letterSpacing: 0.8)),
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(
-              color: SanctumTheme.bg2,
+              color: sc.bg2,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: SanctumTheme.border),
+              border: Border.all(color: sc.border),
             ),
             child: Column(children: [
               _RestoreRow(
@@ -223,16 +224,16 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: SanctumTheme.bg3,
+              color: sc.bg3,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: SanctumTheme.border),
+              border: Border.all(color: sc.border),
             ),
-            child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Icon(Icons.info_outline, size: 13, color: SanctumTheme.textTertiary),
-              SizedBox(width: 8),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Icon(Icons.info_outline, size: 13, color: sc.textTertiary),
+              const SizedBox(width: 8),
               Expanded(child: Text(
                 '還原將覆蓋現有所有資料。還原完成後需重新輸入主密碼解鎖。',
-                style: TextStyle(fontSize: 12, color: SanctumTheme.textTertiary, height: 1.5),
+                style: TextStyle(fontSize: 12, color: sc.textTertiary, height: 1.5),
               )),
             ]),
           ),
@@ -243,18 +244,18 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: SanctumTheme.bg3,
+              color: sc.bg3,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: SanctumTheme.border),
+              border: Border.all(color: sc.border),
             ),
-            child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('運作方式', style: TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w600, color: SanctumTheme.textSecondary)),
-              SizedBox(height: 8),
-              _InfoRow(icon: '🔐', text: '儲存前以 AES-256-GCM 加密'),
-              _InfoRow(icon: '📱', text: '本地副本保留在你的裝置上'),
-              _InfoRow(icon: '☁️', text: '雲端副本與本地為同一加密檔案'),
-              _InfoRow(icon: '🔑', text: '只有你的主密鑰才能還原'),
+                fontSize: 12, fontWeight: FontWeight.w600, color: sc.textSecondary)),
+              const SizedBox(height: 8),
+              const _InfoRow(icon: '🔐', text: '儲存前以 AES-256-GCM 加密'),
+              const _InfoRow(icon: '📱', text: '本地副本保留在你的裝置上'),
+              const _InfoRow(icon: '☁️', text: '雲端副本與本地為同一加密檔案'),
+              const _InfoRow(icon: '🔑', text: '只有你的主密鑰才能還原'),
             ]),
           ),
         ]),
@@ -285,20 +286,21 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
   }
 
   Future<void> _restoreFromFile() async {
+    final sc = context.sc;
     // Confirm before overwriting existing data
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (d) => AlertDialog(
-        backgroundColor: SanctumTheme.bg2,
+        backgroundColor: sc.bg2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('還原備份', style: TextStyle(color: SanctumTheme.textPrimary, fontWeight: FontWeight.w600)),
-        content: const Text(
+        title: Text('還原備份', style: TextStyle(color: sc.textPrimary, fontWeight: FontWeight.w600)),
+        content: Text(
           '這將覆蓋現有所有密碼、記事及財務資料。\n\n還原完成後需重新輸入主密碼解鎖。\n\n確定繼續嗎？',
-          style: TextStyle(color: SanctumTheme.textSecondary, fontSize: 13, height: 1.6),
+          style: TextStyle(color: sc.textSecondary, fontSize: 13, height: 1.6),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(d, false),
-            child: const Text('取消', style: TextStyle(color: SanctumTheme.textSecondary))),
+            child: Text('取消', style: TextStyle(color: sc.textSecondary))),
           TextButton(onPressed: () => Navigator.pop(d, true),
             child: const Text('確定還原', style: TextStyle(color: SanctumTheme.red, fontWeight: FontWeight.w600))),
         ],
@@ -317,17 +319,17 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
         context: context,
         barrierDismissible: false,
         builder: (_) => AlertDialog(
-          backgroundColor: SanctumTheme.bg2,
+          backgroundColor: sc.bg2,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(children: [
-            Text('✅ ', style: TextStyle(fontSize: 20)),
-            Text('還原完成', style: TextStyle(color: SanctumTheme.textPrimary, fontWeight: FontWeight.w600)),
+          title: Row(children: [
+            const Text('✅ ', style: TextStyle(fontSize: 20)),
+            Text('還原完成', style: TextStyle(color: sc.textPrimary, fontWeight: FontWeight.w600)),
           ]),
           content: Text(
             needsReunlock
               ? '所有資料已還原。\n\n請重新輸入主密碼解鎖 Vault。'
               : '所有資料已還原。',
-            style: const TextStyle(color: SanctumTheme.textSecondary, fontSize: 13, height: 1.6),
+            style: TextStyle(color: sc.textSecondary, fontSize: 13, height: 1.6),
           ),
           actions: [
             TextButton(
@@ -370,32 +372,35 @@ class _StepCard extends StatelessWidget {
   const _StepCard({required this.number, required this.title, required this.subtitle, required this.done});
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: done ? SanctumTheme.greenDim : SanctumTheme.bg2,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: done ? SanctumTheme.green.withValues(alpha: 0.3) : SanctumTheme.border),
-    ),
-    child: Row(children: [
-      Container(
-        width: 32, height: 32,
-        decoration: BoxDecoration(
-          color: done ? SanctumTheme.green : SanctumTheme.bg3,
-          shape: BoxShape.circle,
-        ),
-        child: Center(child: done
-          ? const Icon(Icons.check, size: 16, color: Colors.white)
-          : Text(number, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: SanctumTheme.textTertiary))),
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: done ? SanctumTheme.greenDim : sc.bg2,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: done ? SanctumTheme.green.withValues(alpha: 0.3) : sc.border),
       ),
-      const SizedBox(width: 12),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500,
-          color: done ? SanctumTheme.green : SanctumTheme.textPrimary)),
-        Text(subtitle, style: const TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
-      ])),
-    ]),
-  );
+      child: Row(children: [
+        Container(
+          width: 32, height: 32,
+          decoration: BoxDecoration(
+            color: done ? SanctumTheme.green : sc.bg3,
+            shape: BoxShape.circle,
+          ),
+          child: Center(child: done
+            ? const Icon(Icons.check, size: 16, color: Colors.white)
+            : Text(number, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: sc.textTertiary))),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500,
+            color: done ? SanctumTheme.green : sc.textPrimary)),
+          Text(subtitle, style: TextStyle(fontSize: 12, color: sc.textTertiary)),
+        ])),
+      ]),
+    );
+  }
 }
 
 class _CloudCard extends StatelessWidget {
@@ -404,26 +409,29 @@ class _CloudCard extends StatelessWidget {
   const _CloudCard({required this.emoji, required this.title, required this.subtitle, required this.onTap});
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: SanctumTheme.bg2,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: SanctumTheme.border),
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: sc.bg2,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: sc.border),
+        ),
+        child: Row(children: [
+          Text(emoji, style: const TextStyle(fontSize: 24)),
+          const SizedBox(width: 14),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: sc.textPrimary)),
+            Text(subtitle, style: TextStyle(fontSize: 12, color: sc.textTertiary)),
+          ])),
+          Icon(Icons.chevron_right, size: 18, color: sc.textTertiary),
+        ]),
       ),
-      child: Row(children: [
-        Text(emoji, style: const TextStyle(fontSize: 24)),
-        const SizedBox(width: 14),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: SanctumTheme.textPrimary)),
-          Text(subtitle, style: const TextStyle(fontSize: 12, color: SanctumTheme.textTertiary)),
-        ])),
-        const Icon(Icons.chevron_right, size: 18, color: SanctumTheme.textTertiary),
-      ]),
-    ),
-  );
+    );
+  }
 }
 
 class _RestoreRow extends StatelessWidget {
@@ -435,26 +443,29 @@ class _RestoreRow extends StatelessWidget {
   const _RestoreRow({required this.icon, required this.iconColor, required this.label, this.onTap, this.loading = false});
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      child: Row(children: [
-        Container(
-          width: 28, height: 28,
-          decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(7)),
-          child: Icon(icon, size: 15, color: iconColor),
-        ),
-        const SizedBox(width: 12),
-        Expanded(child: Text(label, style: TextStyle(
-          fontSize: 14, color: onTap != null ? SanctumTheme.textPrimary : SanctumTheme.textTertiary))),
-        if (loading)
-          const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: SanctumTheme.gold))
-        else
-          Icon(Icons.chevron_right, size: 18, color: onTap != null ? SanctumTheme.textTertiary : SanctumTheme.bg4),
-      ]),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        child: Row(children: [
+          Container(
+            width: 28, height: 28,
+            decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(7)),
+            child: Icon(icon, size: 15, color: iconColor),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Text(label, style: TextStyle(
+            fontSize: 14, color: onTap != null ? sc.textPrimary : sc.textTertiary))),
+          if (loading)
+            const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: SanctumTheme.gold))
+          else
+            Icon(Icons.chevron_right, size: 18, color: onTap != null ? sc.textTertiary : sc.bg4),
+        ]),
+      ),
+    );
+  }
 }
 
 class _InfoRow extends StatelessWidget {
@@ -466,7 +477,7 @@ class _InfoRow extends StatelessWidget {
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(icon, style: const TextStyle(fontSize: 13)),
       const SizedBox(width: 8),
-      Expanded(child: Text(text, style: const TextStyle(fontSize: 12, color: SanctumTheme.textTertiary, height: 1.5))),
+      Expanded(child: Text(text, style: TextStyle(fontSize: 12, color: context.sc.textTertiary, height: 1.5))),
     ]),
   );
 }
