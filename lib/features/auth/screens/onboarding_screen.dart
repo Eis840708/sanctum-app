@@ -76,6 +76,7 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final sc = context.sc;
     final lang  = ref.watch(langProvider);
     final pages = _buildPages(lang);
 
@@ -88,7 +89,7 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
     final skipLabel = _t(lang, zh: '跳過', en: 'Skip', ja: 'スキップ', ko: '건너뛰기');
 
     return Scaffold(
-      backgroundColor: SanctumTheme.bg,
+      backgroundColor: sc.bg,
       body: SafeArea(
         child: Column(children: [
           // Top bar: language selector + skip
@@ -99,7 +100,7 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
               const Spacer(),
               TextButton(
                 onPressed: widget.onDone,
-                child: Text(skipLabel, style: const TextStyle(fontSize: 13, color: SanctumTheme.textTertiary)),
+                child: Text(skipLabel, style: TextStyle(fontSize: 13, color: sc.textTertiary)),
               ),
             ]),
           ),
@@ -128,7 +129,7 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
                   decoration: BoxDecoration(
                     color: _page == i
                         ? SanctumTheme.gold
-                        : SanctumTheme.textTertiary.withValues(alpha: 0.3),
+                        : sc.textTertiary.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
@@ -168,38 +169,41 @@ class _LangPicker extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) => PopupMenuButton<String>(
-    color: SanctumTheme.bg2,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(10),
-      side: const BorderSide(color: SanctumTheme.border),
-    ),
-    onSelected: onSelect,
-    itemBuilder: (_) => _langs.map((l) => PopupMenuItem(
-      value: l.$1,
-      child: Row(children: [
-        if (current == l.$1) const Icon(Icons.check, size: 14, color: SanctumTheme.gold)
-        else const SizedBox(width: 14),
-        const SizedBox(width: 8),
-        Text(l.$2, style: const TextStyle(fontSize: 13, color: SanctumTheme.textPrimary)),
-      ]),
-    )).toList(),
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: SanctumTheme.bg3,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: SanctumTheme.border),
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return PopupMenuButton<String>(
+      color: sc.bg2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: sc.border),
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.language, size: 14, color: SanctumTheme.gold),
-        const SizedBox(width: 5),
-        Text(current.toUpperCase(), style: const TextStyle(fontSize: 12, color: SanctumTheme.textSecondary)),
-        const SizedBox(width: 3),
-        const Icon(Icons.expand_more, size: 14, color: SanctumTheme.textTertiary),
-      ]),
-    ),
-  );
+      onSelected: onSelect,
+      itemBuilder: (_) => _langs.map((l) => PopupMenuItem(
+        value: l.$1,
+        child: Row(children: [
+          if (current == l.$1) const Icon(Icons.check, size: 14, color: SanctumTheme.gold)
+          else const SizedBox(width: 14),
+          const SizedBox(width: 8),
+          Text(l.$2, style: TextStyle(fontSize: 13, color: sc.textPrimary)),
+        ]),
+      )).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: sc.bg3,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: sc.border),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.language, size: 14, color: SanctumTheme.gold),
+          const SizedBox(width: 5),
+          Text(current.toUpperCase(), style: TextStyle(fontSize: 12, color: sc.textSecondary)),
+          const SizedBox(width: 3),
+          Icon(Icons.expand_more, size: 14, color: sc.textTertiary),
+        ]),
+      ),
+    );
+  }
 }
 
 // ── Data ──────────────────────────────────────────────────────
@@ -215,44 +219,47 @@ class _PageView extends StatelessWidget {
   const _PageView({required this.page, required this.active});
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 32),
-    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Container(
-        width: 100, height: 100,
-        decoration: BoxDecoration(
-          color: SanctumTheme.goldDim,
-          shape: BoxShape.circle,
-          border: Border.all(color: SanctumTheme.gold.withValues(alpha: 0.3), width: 1.5),
-        ),
-        child: Center(child: Text(page.emoji, style: const TextStyle(fontSize: 44))),
-      )
-        .animate(target: active ? 1 : 0)
-        .scale(begin: const Offset(0.85, 0.85), end: const Offset(1, 1), duration: 400.ms, curve: Curves.elasticOut),
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Container(
+          width: 100, height: 100,
+          decoration: BoxDecoration(
+            color: SanctumTheme.goldDim,
+            shape: BoxShape.circle,
+            border: Border.all(color: SanctumTheme.gold.withValues(alpha: 0.3), width: 1.5),
+          ),
+          child: Center(child: Text(page.emoji, style: const TextStyle(fontSize: 44))),
+        )
+          .animate(target: active ? 1 : 0)
+          .scale(begin: const Offset(0.85, 0.85), end: const Offset(1, 1), duration: 400.ms, curve: Curves.elasticOut),
 
-      const SizedBox(height: 32),
+        const SizedBox(height: 32),
 
-      Text(page.title, style: const TextStyle(
-        fontSize: 24, fontWeight: FontWeight.w700,
-        color: SanctumTheme.textPrimary, letterSpacing: -0.3,
-      )).animate(target: active ? 1 : 0).fadeIn(duration: 350.ms, delay: 100.ms).slideY(begin: 0.1, end: 0),
+        Text(page.title, style: TextStyle(
+          fontSize: 24, fontWeight: FontWeight.w700,
+          color: sc.textPrimary, letterSpacing: -0.3,
+        )).animate(target: active ? 1 : 0).fadeIn(duration: 350.ms, delay: 100.ms).slideY(begin: 0.1, end: 0),
 
-      const SizedBox(height: 8),
+        const SizedBox(height: 8),
 
-      ShaderMask(
-        shaderCallback: (b) => SanctumDecor.goldGradient().createShader(b),
-        child: Text(page.subtitle, style: const TextStyle(
-          fontSize: 14, fontWeight: FontWeight.w500,
-          color: Colors.white, letterSpacing: 0.2,
-        )),
-      ).animate(target: active ? 1 : 0).fadeIn(duration: 350.ms, delay: 150.ms),
+        ShaderMask(
+          shaderCallback: (b) => SanctumDecor.goldGradient().createShader(b),
+          child: Text(page.subtitle, style: const TextStyle(
+            fontSize: 14, fontWeight: FontWeight.w500,
+            color: Colors.white, letterSpacing: 0.2,
+          )),
+        ).animate(target: active ? 1 : 0).fadeIn(duration: 350.ms, delay: 150.ms),
 
-      const SizedBox(height: 24),
+        const SizedBox(height: 24),
 
-      Text(page.body,
-        textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 14, color: SanctumTheme.textSecondary, height: 1.7, letterSpacing: 0.1),
-      ).animate(target: active ? 1 : 0).fadeIn(duration: 400.ms, delay: 200.ms),
-    ]),
-  );
+        Text(page.body,
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 14, color: sc.textSecondary, height: 1.7, letterSpacing: 0.1),
+        ).animate(target: active ? 1 : 0).fadeIn(duration: 400.ms, delay: 200.ms),
+      ]),
+    );
+  }
 }
