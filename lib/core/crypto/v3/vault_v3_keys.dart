@@ -13,24 +13,55 @@ import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 
 import 'vault_v3_envelope.dart';
+import 'vendor/unorm/unorm.dart' as unorm;
 
 /// How the master password is normalised before the KDF runs.
 ///
-/// design-spec §3.2 specifies NFC. Dart has no built-in Unicode normalisation
-/// and no NFC package is currently vendored, so [nfc] is declared but not yet
-/// selectable; [none] records honestly what the KDF actually consumed.
-/// Raised to the director as a design/implementation gap (see B2-1 submission).
+/// design-spec §3.2 specifies NFC. Implemented in B2-2 via the vendored `unorm`
+/// normalizer (DEV-P0-03-B2-2-NFC-and-guard-rulings-v1 §三). The chosen form is
+/// recorded in the [KdfDescriptor] so a vault always re-applies the same
+/// normalisation it was created with (self-describing; supports later change
+/// without guessing). [none] remains for vaults created before NFC shipped.
 enum PasswordNormalization {
   none('none'),
   nfc('NFC');
 
   const PasswordNormalization(this.label);
   final String label;
+
+  /// Applies this normalisation to [password] before it is fed to the KDF.
+  String apply(String password) {
+    switch (this) {
+      case PasswordNormalization.none:
+        return password;
+      case PasswordNormalization.nfc:
+        return unorm.nfc(password);
+    }
+  }
+}
+
+/// Raised when new Argon2id parameters would fall below the security floor.
+///
+/// Only new-parameter paths raise this. Reading an existing vault never does
+/// (see [KdfDescriptor.forNewParameters] vs [KdfDescriptor.fromJson]).
+class KdfFloorViolation implements Exception {
+  const KdfFloorViolation(this.reason);
+  final String reason;
+  @override
+  String toString() => 'KdfFloorViolation: $reason';
 }
 
 /// Self-describing Argon2id parameters (design-spec §3.2).
 ///
 /// Persisted with the vault so the KDF can be upgraded without guessing.
+///
+/// Security floor (director ruling DEV-P0-03-B2-2 §二): the OWASP minimum
+/// 19 MiB / t=2 / p=1 must never be produced for NEW parameters. If a device
+/// is too slow the accepted responses are, in order: (i) accept a longer
+/// unlock time; (ii) raise [lanes]; (iii) NEVER lower [memoryKib]. Existing
+/// vaults are read back unconditionally, even below the floor, so that a vault
+/// recorded with weaker parameters can still be unlocked (a floor on the read
+/// path would brick it — permanent data loss).
 class KdfDescriptor {
   const KdfDescriptor({
     required this.salt,
@@ -42,6 +73,52 @@ class KdfDescriptor {
     this.outLength = 32,
     this.normalization = PasswordNormalization.none,
   });
+
+  /// Builds a descriptor for a NEW parameter set (new vault, KEK upgrade,
+  /// password change, backup re-encryption) and ENFORCES the security floor.
+  ///
+  /// Throws [KdfFloorViolation] — never silently clamps — when parameters fall
+  /// below 19 MiB / t=2 / p=1.
+  factory KdfDescriptor.forNewParameters({
+    required Uint8List salt,
+    int memoryKib = defaultMemoryKib,
+    int iterations = defaultIterations,
+    int lanes = defaultLanes,
+    PasswordNormalization normalization = PasswordNormalization.none,
+  }) {
+    if (memoryKib < floorMemoryKib) {
+      throw KdfFloorViolation(
+        'memoryKib $memoryKib below floor $floorMemoryKib; raising lanes or '
+        'accepting a longer unlock time is allowed, lowering memory is not',
+      );
+    }
+    if (iterations < floorIterations) {
+      throw KdfFloorViolation(
+          'iterations $iterations below floor $floorIterations');
+    }
+    if (lanes < floorLanes) {
+      throw KdfFloorViolation('lanes $lanes below floor $floorLanes');
+    }
+    return KdfDescriptor(
+      salt: salt,
+      memoryKib: memoryKib,
+      iterations: iterations,
+      lanes: lanes,
+      normalization: normalization,
+    );
+  }
+
+  /// OWASP minimum floor (director ruling DEV-P0-03-B2-1 §1.2.4). Hard.
+  static const int floorMemoryKib = 19 * 1024; // 19 MiB
+  static const int floorIterations = 2;
+  static const int floorLanes = 1;
+
+  /// True when these parameters sit below the security floor. Used to flag an
+  /// existing vault for a recommended KEK upgrade — never to block unlocking.
+  bool get belowSecurityFloor =>
+      memoryKib < floorMemoryKib ||
+      iterations < floorIterations ||
+      lanes < floorLanes;
 
   final Uint8List salt;
   final int memoryKib;
@@ -179,8 +256,11 @@ class VaultV3KeyHierarchy {
       iterations: descriptor.iterations,
       hashLength: descriptor.outLength,
     );
+    // Normalise per the descriptor so the same password always yields the same
+    // KEK regardless of the input method's byte sequence (design-spec §3.2).
+    final normalized = descriptor.normalization.apply(password);
     return argon2id.deriveKey(
-      secretKey: SecretKey(utf8.encode(password)),
+      secretKey: SecretKey(utf8.encode(normalized)),
       nonce: descriptor.salt,
     );
   }
