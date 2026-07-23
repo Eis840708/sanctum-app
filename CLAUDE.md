@@ -42,6 +42,9 @@ Vault 加密架構、金鑰生命週期與資料格式完整審查。
   - **B2-0 基線保護係硬閘**：建 `feat/vault-v3` 分支、現有 26 個工作樹修改分組 commit 保全、before manifest、**禁 `git reset --hard`／`checkout --`／`clean`**，完成後書面確認先可開工
   - 分批：B2-1 crypto 基礎＋Argon2id（限 07-25，含**真機 API24 量測硬性交付**）→ B2-2 fail-closed＋migration（V-03/V-04 必須同批，限 07-29）→ B2-3 restore/transfer 事務化（V-01 P0，限 08-01）→ B2-4 biometric＋Shamir（限 08-05）→ B2-5 全記錄加密＋in-memory 搜尋（限 08-08）
   - 逐批 QA 驗收＋總監批核先開下一批；設計凍結，發現缺陷須停手上報，禁自行偏離；每批須附測試（順帶償還測試覆蓋技術債）
+- **B2-1 已批核通過（2026-07-22，`DEV-P0-03-B2-1-批核決定-v1.md`）**：QA 自寫 swap harness 重現 Phase A 攻擊 7/7 被 v3 AAD 拒絕（V-06 舊路徑失效）；總監親自重跑 analyze 核實。兩項待處置：QA-B2-1-01 摘要誤標（0 warning 應為 2 warning+162 info，製作方出 erratum-03 限 07-23）＋確立「摘要數字紀律」；QA-B2-1-02 該 2 warning 位於使用者修改檔，§六.4 優先豁免
+- **B2 analyze 驗收基線（取代舊「134 info」）**：error 0（絕對）／warning ≤2（pre-existing）／info ≤162／**B2 各批新增檔案本身必須 0 issue**
+- **B2-2 已開放（07-22）**：原範圍（fail-closed 解密＋顯式版本 migration，V-03/V-04 同批）＋NFC 引入（vendored `unorm_dart` 0.3.2）＋Argon2id 下限雙軌守衛，限 07-29 18:00
 - 待辦：秘書 TRUN 補記＋外部備份
 - Phase A 原限制喺實作開放前繼續生效（只讀產品加密程式、合成資料、restore/transfer 禁真實 Vault）
 - 指令：`DEV-P0-03-vault-cryptography-architecture-review-work-order-v1.md`
