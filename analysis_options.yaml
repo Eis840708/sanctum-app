@@ -9,6 +9,15 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  # Vendored third-party source (DEV-P0-03-B2-2) is frozen at its upstream
+  # version and must not be reformatted to project style — that would diverge
+  # from upstream and defeat the version-freeze audit. It is excluded from
+  # analysis; its integrity is guaranteed instead by SHA-256 manifest and by
+  # Unicode official NormalizationTest.txt vectors.
+  exclude:
+    - lib/core/crypto/v3/vendor/**
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`
