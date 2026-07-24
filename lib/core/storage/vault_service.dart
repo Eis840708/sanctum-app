@@ -515,9 +515,9 @@ class VaultService {
       );
 
   /// Completes or rolls back a restore/transfer transaction that was interrupted
-  /// (e.g. power loss) mid-commit. Idempotent; safe to call at startup. Wiring
-  /// this into app launch/unlock is out of B2-3's authorized edit scope and is
-  /// flagged for the director.
+  /// (e.g. power loss) mid-commit. Idempotent; safe to call repeatedly. Wired into
+  /// [unlock] (B2-3 seam 2) so a pending transaction is resolved before vault
+  /// state is read.
   Future<void> recoverPendingRestore() async {
     // Fast path: peek the journal only. When no transaction is pending (the
     // common case) this avoids opening the staging boxes on every unlock.
