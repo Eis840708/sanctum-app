@@ -75,6 +75,12 @@ class VaultService {
   }
 
   Future<bool> unlock(String masterPassword) async {
+    // V-01 interrupt safety (B2-3 seam 2): complete or roll back any
+    // restore/transfer that was interrupted mid-commit (e.g. power loss) before
+    // reading vault state, so a swap that had reached commit-intent finishes and
+    // meta reflects the recovered vault. Minimal hook only; idempotent no-op when
+    // nothing is pending.
+    await recoverPendingRestore();
     final meta = _meta.get('meta');
     if (meta == null) return false;
     // Fallback to meta.salt if secure storage was wiped (e.g. device reset)
@@ -513,6 +519,10 @@ class VaultService {
   /// this into app launch/unlock is out of B2-3's authorized edit scope and is
   /// flagged for the director.
   Future<void> recoverPendingRestore() async {
+    // Fast path: peek the journal only. When no transaction is pending (the
+    // common case) this avoids opening the staging boxes on every unlock.
+    final journal = await HiveRestoreJournalStore.open();
+    if (await journal.read() == null) return;
     final tx = await _openRestoreTx();
     await tx.recover();
   }
