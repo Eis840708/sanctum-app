@@ -72,13 +72,6 @@ class _GenerateTabState extends State<_GenerateTab> {
   void _snack(String m) { if (!mounted) return; ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m), backgroundColor: context.sc.bg3, behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2))); }
   void _copy(String t) { Clipboard.setData(ClipboardData(text: t)); _snack('已複製'); }
 
-  void _exportAll() {
-    if (_shareCodes == null) return;
-    final now = DateTime.now();
-    final docs = _shareCodes!.asMap().entries.map((e) => shamirService.buildDocument(index: e.key+1, total: _n, threshold: _k, shareCode: e.value, createdAt: now)).join('\n\n${'═'*46}\n\n');
-    Share.share(docs, subject: 'Sanctum 密閣 · 主密碼碎片');
-  }
-
   void _exportOne(int i) {
     if (_shareCodes == null) return;
     Share.share(shamirService.buildDocument(index: i+1, total: _n, threshold: _k, shareCode: _shareCodes![i], createdAt: DateTime.now()), subject: 'Sanctum 密閣 · 碎片 ${i+1}/$_n');
@@ -130,8 +123,9 @@ class _GenerateTabState extends State<_GenerateTab> {
         color: sc.bg2,
         child: Row(children: [
           const Icon(Icons.check_circle_outline, color: SanctumTheme.gold, size: 18), const SizedBox(width: 8),
+          // V-07: no single "share all" action — each share must be distributed
+          // to a separate destination via its own per-share export.
           Expanded(child: Text('已生成 $_n 份碎片（需 $_k 份還原）', style: TextStyle(fontSize: 13, color: sc.textPrimary))),
-          TextButton(onPressed: _exportAll, child: const Text('全部分享', style: TextStyle(color: SanctumTheme.gold, fontSize: 12))),
         ]),
       ),
       Expanded(child: ListView.separated(

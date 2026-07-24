@@ -26,8 +26,11 @@ Flutter / Riverpod / Hive / go_router，版本 `1.5.0+6`。階段：功能原型
 
 - **DEV-P0-03 Phase A、Phase B 設計：已批核。Phase B 實作進行中（分支 `feat/vault-v3`）。**
 - 八項 finding V-01…V-08 已定級（P0×1：V-01；P1×3：V-02/V-03/V-05；P2×4：V-04/V-06/V-07/V-08，V-04/V-08 有連動/升級條款），**全部維持「未通過／待修正」**直至各批修復經 QA 驗收。
-- B2 分五批：B2-1（已批核）→ B2-2（已批核，2026-07-22，V-03/V-04＋NFC＋雙軌守衛，QA PASS＋總監深驗）→ **B2-3（已開放，V-01 P0 restore/transfer 事務化，限 08-01）** → B2-4（biometric＋Shamir，限 08-05）→ B2-5（全記錄加密＋in-memory 搜尋，限 08-08）。逐批 QA 驗收＋總監批核先開下一批。
-- **B2-3 結構轉折**：首次授權修改核心三檔之 `vault_service.dart`（只准 restore/transfer 方法：`importFromBackup`/`importTransfer`），其餘核心檔仍零改動；開工前出 before hash。事務化硬性：驗證先於任何破壞性操作→staging→atomic commit→rollback，任何失敗現有 vault 原封不動。QA 加倍嚴格：餵壞備份確認現有 vault 唔會被清（缺此即 RETURN）。
+- B2 分五批：B2-1／B2-2／**B2-3 已批核**（2026-07-22，HEAD `8a1199f`）→ **B2-4（已開放，biometric＋Shamir，限 08-05）** → B2-5（全記錄加密＋in-memory 搜尋，限 08-08）。逐批 QA 驗收＋總監批核先開下一批。
+- **B2-3 里程碑**：V-01（唯一 P0）事務化 restore/transfer 修復完成，QA 真 adapter harness＋總監親跑 test 95/95 雙重證實舊攻擊路徑失效；V-02 同步收尾。vault_service.dart 已改（`9c1316d4`，限 restore/transfer＋unlock resume hook）；真 adapter 回歸測試入 committed suite（fake-only 缺口閉合）。八項 finding 仍維持「未通過」至 B2 全批整體驗收。
+- **接縫遺留**：接縫 1（transfer 收端密碼確認）＋接縫 3（backup UI 傳 masterPassword）併「v3 UI 整合」任務，**Internal Alpha 前必完成**。
+- **B2-4 結構轉折**：首次授權修改 `shamir_service.dart`（限 V-07/V-08）；開工前出 before hash（`fe42c2ed…`）。V-08 依 design v1.1：分割全熵 R、commit=SHA-256(R)、取消 set_mac_key，combine 顯式報錯。
+- **B2-4 DEK 相依排序裁示**（`DEV-P0-03-B2-4-sequencing-ruling-v1.md`）：製作方停手上報「V-05 auth-bound／V-08 還原 均以包裝 DEK 為根基，但 live vault 尚無 DEK（DEK 接入原排 B2-5）」——若強做會用 R 包密碼＝重引 DR-01 oracle。裁採方案 A：**B2-4 只做 DEK-無關部分**（V-07 逐一分發、V-05 opt-in、V-08 crypto 核心 envelope/全熵R/commit/combine顯式報錯，自足可測）；**DEK-綁定部分（V-05 auth-bound wrap DEK、V-08 還原 live 接線）遞延新設地基子步 `B2-5a：DEK live-integration`**。V-05 native auth-bound（KeyStore/CryptoObject）亦排 B2-5a，開工前提迷你依賴評估（傾向自寫最小 platform channel；API24 僅 TEE）。不得以 R wrap 密碼/sessionKey 偏離 v1.1。
 - 設計凍結：實作以 design v1.0＋v1.1 為準，發現缺陷停手上報，禁自行偏離。
 
 ## 生效中控制／基線

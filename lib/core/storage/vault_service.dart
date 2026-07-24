@@ -71,7 +71,7 @@ class VaultService {
     );
     await _meta.put('meta', meta);
     _sessionKey = key;
-    try { if (await canUseBiometric()) await enableBiometric(); } catch (_) {}
+    // V-05: biometric is opt-in only — never auto-enabled on vault creation.
   }
 
   Future<bool> unlock(String masterPassword) async {
@@ -99,7 +99,9 @@ class VaultService {
       meta.lastUnlocked = DateTime.now();
       meta.unlockCount++;
       await meta.save();
-      try { if (await canUseBiometric()) await enableBiometric(); } catch (_) {} // 每次密碼登入都刷新生物識別密鑰
+      // V-05: opt-in only — never auto-enable. Refresh the stored wrapper only
+      // when the user has already opted into biometric unlock.
+      try { if (await hasBiometricEnabled()) await enableBiometric(); } catch (_) {}
       await _migrateV2();
     }
     return ok;
