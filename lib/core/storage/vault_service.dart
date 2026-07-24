@@ -6,6 +6,8 @@ import 'package:local_auth/local_auth.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../crypto/crypto_service.dart';
+import '../crypto/v3/vault_v3_restore.dart';
+import '../crypto/v3/vault_v3_restore_hive.dart';
 import '../models/models.dart';
 
 class VaultService {
@@ -109,69 +111,20 @@ class VaultService {
       (key, value) => MapEntry(key.toString(), List<String>.from(value as List)));
   VaultMeta?          get rawMeta      => _meta.get('meta');
 
+  /// Imports a device-transfer payload transactionally (finding V-02).
+  ///
+  /// The former clear-all + `deleteAll` (which destroyed the existing vault,
+  /// metadata, secure storage and session BEFORE parsing) is gone: the payload is
+  /// fully parsed and structurally validated first, then staged, then atomically
+  /// committed. A malformed payload is rejected before any destructive step, so
+  /// the existing vault, biometric wrapper and metadata all survive intact. The
+  /// biometric-wrapper + meta destruction now happens only inside the atomic
+  /// commit (see [RestoreSideEffects.deleteBiometricKey]).
   Future<void> importTransfer(Map<String, dynamic> d) async {
-    // Clear existing vault completely
-    await _passwords.clear();
-    await _diary.clear();
-    await _finance.clear();
-    await _images.clear();
-    await _imageIndex.clear();
-    await _meta.clear();
-    await _secureStorage.deleteAll();
-    _sessionKey = null;
-
-    // Import meta — same salt means same master password → same derived key
-    final meta = VaultMeta(
-      salt: d['sl'] as String,
-      verifyHash: d['vh'] as String,
-      createdAt: DateTime.now(),
-      lastUnlocked: DateTime.now(),
-    );
-    await _meta.put('meta', meta);
-    await _secureStorage.write(key: _saltKey, value: d['sl'] as String);
-    await _secureStorage.write(key: _encV2Key, value: 'done'); // already v2
-
-    for (final p in (d['pw'] as List? ?? [])) {
-      final e = PasswordEntry(
-        id: p['id'], site: p['si'], username: p['un'],
-        encryptedPassword: p['ep'], notes: p['no'] ?? '',
-        createdAt: DateTime.fromMillisecondsSinceEpoch(p['ca']),
-        updatedAt: DateTime.fromMillisecondsSinceEpoch(p['ua']),
-        iconEmoji: p['ie'],
-      );
-      await _passwords.put(e.id, e);
-    }
-    for (final d2 in (d['di'] as List? ?? [])) {
-      final e = DiaryEntry(
-        id: d2['id'], title: d2['ti'], encryptedContent: d2['ec'],
-        mood: d2['mo'], tags: List<String>.from(d2['tg'] ?? []),
-        createdAt: DateTime.fromMillisecondsSinceEpoch(d2['ca']),
-        updatedAt: DateTime.fromMillisecondsSinceEpoch(d2['ua']),
-      );
-      await _diary.put(e.id, e);
-    }
-    for (final f in (d['fi'] as List? ?? [])) {
-      final e = FinanceRecord(
-        id: f['id'], type: f['ty'],
-        amount: (f['am'] as num).toDouble(),
-        category: f['ct'], description: f['de'],
-        date: DateTime.fromMillisecondsSinceEpoch(f['dt']),
-        createdAt: DateTime.fromMillisecondsSinceEpoch(f['ca']),
-        currency: f['cu'] ?? 'USD',
-        lineItemsJson: f['li'],
-      );
-      await _finance.put(e.id, e);
-    }
-    for (final entry in ((d['im'] as Map?) ?? {}).entries) {
-      if (entry.value is String) {
-        await _images.put(entry.key.toString(), entry.value as String);
-      }
-    }
-    for (final entry in ((d['ii'] as Map?) ?? {}).entries) {
-      if (entry.value is List) {
-        await _imageIndex.put(entry.key.toString(), List<String>.from(entry.value as List));
-      }
-    }
+    final staged = parseAndValidateTransfer(d);
+    final tx = await _openRestoreTx();
+    await tx.commit(staged);
+    if (staged.sideEffects.clearSession) _sessionKey = null;
   }
 
   Future<void> clearVault() async {
@@ -490,103 +443,78 @@ class VaultService {
   }
 
   // ── Import / Restore ────────────────────────────────────
-  /// Restores all data from a backup produced by [exportVaultJson].
-  /// Existing data is cleared first.
-  /// If the backup contains salt/verifyHash (v2+), the session is locked
-  /// so the user must re-unlock with their original master password.
-  Future<bool> importFromBackup(Map<String, dynamic> json) async {
-    final hasCreds = (json['salt'] as String?)?.isNotEmpty == true;
+  /// Restores all data from a backup produced by [exportVaultJson], transactionally
+  /// (finding V-01, P0).
+  ///
+  /// The former clear-before-validate order (which erased the live vault before
+  /// parsing, so any malformed record caused irreversible loss) is gone. The
+  /// backup is now: (1) structurally validated in full, (2) when it carries
+  /// credentials and [masterPassword] is supplied, confirmed to authenticate
+  /// against those credentials, then (3) staged and atomically committed with a
+  /// journalled resume. Any failure before commit-intent leaves the existing
+  /// vault completely intact.
+  ///
+  /// Returns true when the caller must re-unlock with the master password
+  /// (backup carried credentials), false for a same-device restore.
+  Future<bool> importFromBackup(Map<String, dynamic> json,
+      {String? masterPassword}) async {
+    // 1. Structural preflight + parse. Throws RestoreValidationException on any
+    //    anomaly BEFORE the live vault is touched.
+    final staged = parseAndValidateBackup(json);
 
-    // Clear existing data
-    await _passwords.clear();
-    await _diary.clear();
-    await _finance.clear();
-    await _images.clear();
-    await _imageIndex.clear();
-
-    // Restore passwords
-    for (final p in (json['passwords'] as List? ?? [])) {
-      final e = PasswordEntry(
-        id: p['id'] as String,
-        site: p['site'] as String,
-        username: p['username'] as String,
-        encryptedPassword: p['encryptedPassword'] as String,
-        notes: (p['notes'] as String?) ?? '',
-        createdAt: DateTime.parse(p['createdAt'] as String),
-        updatedAt: DateTime.parse(p['updatedAt'] as String),
-        iconEmoji: p['iconEmoji'] as String?,
-      );
-      await _passwords.put(e.id, e);
-    }
-
-    // Restore diary
-    for (final d in (json['diary'] as List? ?? [])) {
-      final e = DiaryEntry(
-        id: d['id'] as String,
-        title: d['title'] as String,
-        encryptedContent: d['encryptedContent'] as String,
-        mood: d['mood'] as String,
-        tags: List<String>.from(d['tags'] as List? ?? []),
-        createdAt: DateTime.parse(d['createdAt'] as String),
-        updatedAt: d.containsKey('updatedAt')
-          ? DateTime.parse(d['updatedAt'] as String)
-          : DateTime.parse(d['createdAt'] as String),
-      );
-      await _diary.put(e.id, e);
-    }
-
-    // Restore finance
-    for (final f in (json['finance'] as List? ?? [])) {
-      final e = FinanceRecord(
-        id: f['id'] as String,
-        type: f['type'] as String,
-        amount: (f['amount'] as num).toDouble(),
-        category: f['category'] as String,
-        description: f['description'] as String,
-        date: DateTime.parse(f['date'] as String),
-        createdAt: f.containsKey('createdAt')
-          ? DateTime.parse(f['createdAt'] as String)
-          : DateTime.now(),
-        currency: (f['currency'] as String?) ?? 'MOP',
-        lineItemsJson: f['lineItemsJson'] as String?,
-      );
-      await _finance.put(e.id, e);
-    }
-
-    final images = json['images'];
-    if (images is Map) {
-      for (final entry in images.entries) {
-        final value = entry.value;
-        if (value is String) await _images.put(entry.key.toString(), value);
+    // 2. Password confirmation before any destructive step: does the master
+    //    password derive a key that authenticates against the backup credentials?
+    if (masterPassword != null && staged.meta != null) {
+      final ok = await _confirmBackupPassword(masterPassword, staged.meta!);
+      if (!ok) {
+        throw const RestoreValidationException(
+            RestoreRejectCode.passwordMismatch,
+            'master password does not match backup credentials');
       }
     }
 
-    final imageIndex = json['imageIndex'];
-    if (imageIndex is Map) {
-      for (final entry in imageIndex.entries) {
-        final value = entry.value;
-        if (value is List) {
-          await _imageIndex.put(entry.key.toString(), List<String>.from(value));
-        }
-      }
-    }
+    // 3. Transactional commit: stage -> verify -> atomic swap -> cleanup.
+    final tx = await _openRestoreTx();
+    await tx.commit(staged);
 
-    // If backup has salt, update meta so the same master password works on this device
-    if (hasCreds) {
-      final salt = json['salt'] as String;
-      final vh   = json['verifyHash'] as String;
-      final meta = VaultMeta(
-        salt: salt, verifyHash: vh,
-        createdAt: DateTime.now(), lastUnlocked: DateTime.now(),
-        version: 'v2',
-      );
-      await _meta.put('meta', meta);
-      await _secureStorage.write(key: _saltKey, value: salt);
-      await _secureStorage.write(key: _encV2Key, value: 'done');
-      _sessionKey = null; // Force re-unlock with master password
-      return true;  // true = needs re-unlock
+    if (staged.sideEffects.clearSession) _sessionKey = null;
+    return staged.sideEffects.needsReunlock;
+  }
+
+  /// Confirms [password] authenticates against a backup's credentials by deriving
+  /// a key from the backup's own salt and checking it against its verifyHash.
+  Future<bool> _confirmBackupPassword(String password, VaultMeta meta) async {
+    try {
+      final salt = Uint8List.fromList(base64.decode(meta.salt));
+      final key = await cryptoService.deriveKey(password, salt);
+      return await cryptoService.verifyKey(key, meta.verifyHash);
+    } catch (_) {
+      return false;
     }
-    return false; // false = already unlocked (same-device restore)
+  }
+
+  /// Builds the transactional restore engine bound to this vault's live boxes and
+  /// secure storage. Restore/transfer direct helper.
+  Future<TransactionalRestore> _openRestoreTx() => openHiveRestore(
+        livePasswords: _passwords,
+        liveDiary: _diary,
+        liveFinance: _finance,
+        liveImages: _images,
+        liveImageIndex: _imageIndex,
+        liveMeta: _meta,
+        secureStorage: _secureStorage,
+        saltKey: _saltKey,
+        biometricKey: _biometricKey,
+        encV2Key: _encV2Key,
+      );
+
+  /// Completes or rolls back a restore/transfer transaction that was interrupted
+  /// (e.g. power loss) mid-commit. Idempotent; safe to call at startup. Wiring
+  /// this into app launch/unlock is out of B2-3's authorized edit scope and is
+  /// flagged for the director.
+  Future<void> recoverPendingRestore() async {
+    final tx = await _openRestoreTx();
+    await tx.recover();
   }
 
   // ── Stats ──────────────────────────────────────────────
