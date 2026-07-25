@@ -94,6 +94,7 @@ class SettingsScreen extends ConsumerWidget {
                 );
               },
             ),
+            const _BiometricTile(),
           ]),
 
           const SizedBox(height: 20),
@@ -366,6 +367,68 @@ class _Row extends StatelessWidget {
           ])),
           if (trailing != null) trailing!,
         ]),
+      ),
+    );
+  }
+}
+
+// ── Biometric opt-in (V-05) ──────────────────────────────────
+// Explicit opt-in toggle: biometric unlock is never auto-enabled. Hidden when the
+// device has no biometric hardware. (Auth-bound key binding + protection-level
+// display land in B2-5a; this toggle governs enablement only.)
+class _BiometricTile extends StatefulWidget {
+  const _BiometricTile();
+  @override
+  State<_BiometricTile> createState() => _BiometricTileState();
+}
+
+class _BiometricTileState extends State<_BiometricTile> {
+  bool _loaded = false;
+  bool _supported = false;
+  bool _enabled = false;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final supported = await vaultService.canUseBiometric();
+    final enabled = await vaultService.hasBiometricEnabled();
+    if (!mounted) return;
+    setState(() { _supported = supported; _enabled = enabled; _loaded = true; });
+  }
+
+  Future<void> _set(bool on) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      if (on) {
+        await vaultService.enableBiometric();
+      } else {
+        await vaultService.disableBiometric();
+      }
+      if (mounted) setState(() => _enabled = on);
+    } catch (_) {
+      // Leave state unchanged on failure (e.g. vault locked).
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_loaded || !_supported) return const SizedBox.shrink();
+    return _Row(
+      icon: Icons.fingerprint,
+      iconColor: SanctumTheme.purple,
+      label: S.get('bioUnlock'),
+      trailing: Switch(
+        value: _enabled,
+        activeThumbColor: SanctumTheme.gold,
+        onChanged: _busy ? null : _set,
       ),
     );
   }
