@@ -26,7 +26,9 @@ Flutter / Riverpod / Hive / go_router，版本 `1.5.0+6`。階段：功能原型
 
 - **DEV-P0-03 Phase A、Phase B 設計：已批核。Phase B 實作進行中（分支 `feat/vault-v3`）。**
 - 八項 finding V-01…V-08 已定級（P0×1：V-01；P1×3：V-02/V-03/V-05；P2×4：V-04/V-06/V-07/V-08，V-04/V-08 有連動/升級條款），**全部維持「未通過／待修正」**直至各批修復經 QA 驗收。
-- B2 分五批：B2-1／B2-2／**B2-3 已批核**（2026-07-22，HEAD `8a1199f`）→ **B2-4（已開放，biometric＋Shamir，限 08-05）** → B2-5（全記錄加密＋in-memory 搜尋，限 08-08）。逐批 QA 驗收＋總監批核先開下一批。
+- B2 分五批：B2-1／B2-2／B2-3／**B2-4 已批核**（2026-07-22，HEAD `a599b8f`，V-05 opt-in＋V-07 分發＋V-08 crypto 核心，crypto/shamir 基線零改動，test 109/109）→ **B2-5a（已開放，DEK live-integration 地基子步）→ B2-5b（全記錄加密＋in-memory 搜尋）**。逐批 QA 驗收＋總監批核先開下一批。
+- **B2-5a 方案已覆核（`DEV-P0-03-B2-5a-plan-director-ruling-v1.md`）**：確認「既有 vault 得 DEK ≡ 重加密 ≡ B2-5b 全記錄加密」耦合。裁**方案 A**：B2-5a 只接 DEK 骨架＋**新 vault** 用 DEK＋unlock 依 meta.version 分流（**v2 走舊路徑零改動零回歸**）＋V-05 auth-bound/V-08 recovery（限 v3 vault）＋coexistence 規格增補（v2/v3 並存須文件化）；**既有 v2 vault 遷移留 B2-5b**（連全記錄加密、V-06 AAD、遷移中斷 RETURN 測試）。
+- **B2-5a RETURN 級**（更正 B2-4 §3.3）：v2 解鎖零回歸＋v3 DEK round-trip（非「遷移中斷」，因 B2-5a 無遷移）。Argon2id 用臨時 above-floor 參數（self-describing 可 KEK 升級唔使重加密；floor 19MiB/t2/p1 仍守；release-gate 實體量測不阻塞 B2-5a）。V-05 native＝自寫最小 platform channel（crypto 綁定）＋local_auth（UI 觸發）。限期 07-29。
 - **B2-3 里程碑**：V-01（唯一 P0）事務化 restore/transfer 修復完成，QA 真 adapter harness＋總監親跑 test 95/95 雙重證實舊攻擊路徑失效；V-02 同步收尾。vault_service.dart 已改（`9c1316d4`，限 restore/transfer＋unlock resume hook）；真 adapter 回歸測試入 committed suite（fake-only 缺口閉合）。八項 finding 仍維持「未通過」至 B2 全批整體驗收。
 - **接縫遺留**：接縫 1（transfer 收端密碼確認）＋接縫 3（backup UI 傳 masterPassword）併「v3 UI 整合」任務，**Internal Alpha 前必完成**。
 - **B2-4 結構轉折**：首次授權修改 `shamir_service.dart`（限 V-07/V-08）；開工前出 before hash（`fe42c2ed…`）。V-08 依 design v1.1：分割全熵 R、commit=SHA-256(R)、取消 set_mac_key，combine 顯式報錯。

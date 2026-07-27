@@ -6,6 +6,8 @@ import 'package:local_auth/local_auth.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../crypto/crypto_service.dart';
+import '../crypto/v3/vault_v3_keys.dart';
+import '../crypto/v3/vault_v3_live.dart';
 import '../crypto/v3/vault_v3_restore.dart';
 import '../crypto/v3/vault_v3_restore_hive.dart';
 import '../models/models.dart';
@@ -18,6 +20,9 @@ class VaultService {
   static const String _saltKey          = 'vault_salt';
   static const String _biometricKey = 'vault_biometric_key';
   static const String _encV2Key    = 'vault_enc_v2';
+  // B2-5a: durable store for v3 key material (wrapped DEK + KDF descriptor).
+  static const String _v3BoxName     = 'sanctum_vault_v3';
+  static const String _v3MaterialKey = 'material';
 
   final _secureStorage = const FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -59,20 +64,25 @@ class VaultService {
     await _images.clear();
     await _imageIndex.clear();
 
-    final salt = cryptoService.generateSalt();
-    final saltB64 = base64.encode(salt);
-    await _secureStorage.write(key: _saltKey, value: saltB64);
-    final key = await cryptoService.deriveKey(masterPassword, salt);
-    final verifyHash = await cryptoService.makeVerifyHash(key);
+    // B2-5a: new vaults use the v3 key hierarchy — a random DEK wrapped by an
+    // Argon2id password-KEK; the DEK's data subkey is the live session key. The
+    // password never encrypts records directly, so a password change or biometric
+    // opt-in only re-wraps the DEK (no record re-encryption). No secure-storage
+    // salt and no separate verifyHash: v3 authenticates by unwrapping the DEK.
+    final created = await vaultV3Live.create(masterPassword);
+    final box = await _openV3Box();
+    await box.put(_v3MaterialKey, created.material.encode());
     final meta = VaultMeta(
-      salt: saltB64, verifyHash: verifyHash,
+      salt: '', verifyHash: '',
       createdAt: DateTime.now(), lastUnlocked: DateTime.now(),
-      version: 'v2', // Mark migration as already done for new vaults
+      version: 'v3',
     );
     await _meta.put('meta', meta);
-    _sessionKey = key;
+    _sessionKey = created.dataKey;
     // V-05: biometric is opt-in only — never auto-enabled on vault creation.
   }
+
+  Future<Box> _openV3Box() => Hive.openBox(_v3BoxName);
 
   Future<bool> unlock(String masterPassword) async {
     // V-01 interrupt safety (B2-3 seam 2): complete or roll back any
@@ -83,6 +93,9 @@ class VaultService {
     await recoverPendingRestore();
     final meta = _meta.get('meta');
     if (meta == null) return false;
+    // B2-5a: v3 vaults unlock via the DEK hierarchy. v2 vaults fall through to
+    // the original path below, byte-for-byte unchanged (zero regression).
+    if (meta.version == 'v3') return _unlockV3(masterPassword, meta);
     // Fallback to meta.salt if secure storage was wiped (e.g. device reset)
     String? saltStr = await _secureStorage.read(key: _saltKey);
     saltStr ??= meta.salt;
@@ -105,6 +118,26 @@ class VaultService {
       await _migrateV2();
     }
     return ok;
+  }
+
+  /// Unlocks a v3 vault: password → Argon2id KEK → unwrap DEK → data subkey.
+  /// A wrong password fails the wrapped-DEK AEAD tag (no separate verifyHash).
+  Future<bool> _unlockV3(String masterPassword, VaultMeta meta) async {
+    final box = await _openV3Box();
+    final raw = box.get(_v3MaterialKey);
+    if (raw is! String) return false;
+    final material = VaultV3Material.decode(raw);
+    try {
+      _sessionKey = await vaultV3Live.unlock(masterPassword, material);
+    } on VaultV3KeyException {
+      return false; // wrong password / tampered wrapped DEK
+    }
+    meta.lastUnlocked = DateTime.now();
+    meta.unlockCount++;
+    await meta.save();
+    // V-05: opt-in only — refresh the biometric wrapper only when already opted in.
+    try { if (await hasBiometricEnabled()) await enableBiometric(); } catch (_) {}
+    return true;
   }
 
   void lock() => _sessionKey = null;
