@@ -152,6 +152,57 @@ class VaultV3Live {
     );
     return keys.dataKey;
   }
+
+  /// Re-derives and returns the raw DEK for a v3 vault. Used by recovery-enable
+  /// (which must wrap the DEK under a fresh recovery key). Throws
+  /// [VaultV3KeyException] on a wrong password.
+  Future<Uint8List> unwrapDek(String password, VaultV3Material material) async {
+    final kek =
+        await _kh.deriveKek(password: password, descriptor: material.descriptor);
+    return _kh.unwrapDekWithKek(
+      wrapped: material.wrappedDek,
+      kek: kek,
+      vaultId: material.vaultId,
+    );
+  }
+
+  /// Re-wraps an existing [dek] under a fresh password-KEK (the forced password
+  /// reset after a recovery). Preserves the vaultId and any recovery wrap; the
+  /// data subkey is unchanged (subkeys derive from the DEK, not the KEK), so
+  /// existing records stay decryptable. Returns the new material + data subkey.
+  Future<V3CreateResult> rekey({
+    required Uint8List dek,
+    required VaultV3Material previous,
+    required String newPassword,
+  }) async {
+    final descriptor = KdfDescriptor.forNewParameters(
+      salt: _kh.generateSalt(),
+      normalization: PasswordNormalization.nfc,
+    );
+    final kek =
+        await _kh.deriveKek(password: newPassword, descriptor: descriptor);
+    final wrapped = await _kh.wrapDekWithKek(
+      dek: dek,
+      kek: kek,
+      vaultId: previous.vaultId,
+      keyGeneration: keyGenerationInitial,
+    );
+    final keys = await _kh.deriveSubkeys(
+      dek: dek,
+      vaultId: previous.vaultId,
+      keyGeneration: keyGenerationInitial,
+    );
+    return V3CreateResult(
+      material: VaultV3Material(
+        vaultId: previous.vaultId,
+        wrappedDek: wrapped,
+        descriptor: descriptor,
+        recoveryWrappedDek: previous.recoveryWrappedDek,
+        recoveryCommit: previous.recoveryCommit,
+      ),
+      dataKey: keys.dataKey,
+    );
+  }
 }
 
 final vaultV3Live = VaultV3Live();

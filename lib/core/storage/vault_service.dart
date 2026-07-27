@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import '../crypto/crypto_service.dart';
 import '../crypto/v3/vault_v3_keys.dart';
 import '../crypto/v3/vault_v3_live.dart';
+import '../crypto/v3/vault_v3_recovery.dart';
 import '../crypto/v3/vault_v3_restore.dart';
 import '../crypto/v3/vault_v3_restore_hive.dart';
 import '../models/models.dart';
@@ -138,6 +139,73 @@ class VaultService {
     // V-05: opt-in only — refresh the biometric wrapper only when already opted in.
     try { if (await hasBiometricEnabled()) await enableBiometric(); } catch (_) {}
     return true;
+  }
+
+  /// Enables Shamir recovery for the current v3 vault (V-08 live wiring; v3
+  /// only). Re-derives the DEK from [masterPassword], wraps it under a fresh
+  /// full-entropy recovery key R, splits R into [n] shares (any [k] reconstruct),
+  /// persists the recovery wrap + commit, and returns the encoded share envelopes
+  /// for one-per-destination distribution (V-07). Throws [VaultV3KeyException] on
+  /// a wrong password; [StateError] on a non-v3 vault.
+  Future<List<Uint8List>> enableV3Recovery(String masterPassword,
+      {int n = 5, int k = 3}) async {
+    final material = await _requireV3Material();
+    final dek = await vaultV3Live.unwrapDek(masterPassword, material);
+    final result =
+        await vaultV3Recovery.enable(dek: dek, vaultId: material.vaultId, n: n, k: k);
+    final box = await _openV3Box();
+    await box.put(
+      _v3MaterialKey,
+      material
+          .withRecovery(
+              recoveryWrappedDek: result.recoveryWrappedDek,
+              recoveryCommit: result.commit)
+          .encode(),
+    );
+    return result.shares;
+  }
+
+  /// Recovers a v3 vault from [shares] and forces a master-password reset to
+  /// [newPassword] in one step (V-08 live wiring; v3 only). Reconstruction is
+  /// fail-closed (vault_v3_shamir raises on insufficient/mixed/tampered shares or
+  /// a commit mismatch). On success the vault is unlocked and the DEK is re-wrapped
+  /// under the new password. Throws [StateError] if recovery was never enabled.
+  Future<void> recoverV3(List<Uint8List> shares, String newPassword) async {
+    final material = await _requireV3Material();
+    final rw = material.recoveryWrappedDek;
+    final commit = material.recoveryCommit;
+    if (rw == null || commit == null) {
+      throw StateError('recovery not enabled for this vault');
+    }
+    final dek = await vaultV3Recovery.recoverDek(
+      shares: shares,
+      commit: commit,
+      recoveryWrappedDek: rw,
+      vaultId: material.vaultId,
+    );
+    final rekeyed =
+        await vaultV3Live.rekey(dek: dek, previous: material, newPassword: newPassword);
+    final box = await _openV3Box();
+    await box.put(_v3MaterialKey, rekeyed.material.encode());
+    _sessionKey = rekeyed.dataKey;
+    final meta = _meta.get('meta');
+    if (meta != null) {
+      meta.lastUnlocked = DateTime.now();
+      meta.unlockCount++;
+      await meta.save();
+    }
+  }
+
+  /// Loads the current vault's v3 material, or throws [StateError] if the vault
+  /// is not v3 (recovery is a v3-only feature during coexistence).
+  Future<VaultV3Material> _requireV3Material() async {
+    final meta = _meta.get('meta');
+    if (meta == null || meta.version != 'v3') {
+      throw StateError('operation requires a v3 vault');
+    }
+    final raw = (await _openV3Box()).get(_v3MaterialKey);
+    if (raw is! String) throw StateError('v3 vault material missing');
+    return VaultV3Material.decode(raw);
   }
 
   void lock() => _sessionKey = null;
