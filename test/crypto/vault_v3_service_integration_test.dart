@@ -224,5 +224,18 @@ Future<void> _wipe() async {
       ? Hive.box('sanctum_vault_v3')
       : await Hive.openBox('sanctum_vault_v3');
   await v3.clear();
+  // B2-5b: also clear the v3 record boxes (+ staging) and the migration journal,
+  // otherwise auto-migration leaves state that contaminates the next test.
+  for (final name in const [
+    'sanctum_passwords__v3',
+    'sanctum_diary__v3',
+    'sanctum_finance__v3',
+    'sanctum_images__v3',
+    'sanctum_image_index__v3',
+  ]) {
+    await (await Hive.openBox(name)).clear();
+    await (await Hive.openBox('${name}__staging')).clear();
+  }
+  await (await Hive.openBox('sanctum_migration_journal')).clear();
   _secure.clear();
 }

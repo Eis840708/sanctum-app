@@ -6,8 +6,10 @@ import 'package:local_auth/local_auth.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../crypto/crypto_service.dart';
+import '../crypto/v3/vault_v3_data.dart';
 import '../crypto/v3/vault_v3_keys.dart';
 import '../crypto/v3/vault_v3_live.dart';
+import '../crypto/v3/vault_v3_migrate_hive.dart';
 import '../crypto/v3/vault_v3_recovery.dart';
 import '../crypto/v3/vault_v3_restore.dart';
 import '../crypto/v3/vault_v3_restore_hive.dart';
@@ -33,6 +35,10 @@ class VaultService {
 
   SecretKey? _sessionKey;
   bool get isUnlocked => _sessionKey != null;
+
+  // B2-5b: set while a v3 (full-record-encrypted) vault is unlocked; data-access
+  // methods delegate to it. Null for a v2 vault (old typed-box path).
+  VaultV3Data? _v3Data;
 
   late Box<PasswordEntry> _passwords;
   late Box<DiaryEntry>    _diary;
@@ -80,6 +86,8 @@ class VaultService {
     );
     await _meta.put('meta', meta);
     _sessionKey = created.dataKey;
+    _v3Data = await openVaultV3Data(
+        dataKey: created.dataKey, vaultId: created.material.vaultId);
     // V-05: biometric is opt-in only — never auto-enabled on vault creation.
   }
 
@@ -92,6 +100,9 @@ class VaultService {
     // meta reflects the recovered vault. Minimal hook only; idempotent no-op when
     // nothing is pending.
     await recoverPendingRestore();
+    // B2-5b: finish or roll back a v2->v3 migration interrupted mid-commit before
+    // reading vault state, so meta.version routes correctly.
+    await _recoverPendingMigration();
     final meta = _meta.get('meta');
     if (meta == null) return false;
     // B2-5a: v3 vaults unlock via the DEK hierarchy. v2 vaults fall through to
@@ -117,6 +128,9 @@ class VaultService {
       // when the user has already opted into biometric unlock.
       try { if (await hasBiometricEnabled()) await enableBiometric(); } catch (_) {}
       await _migrateV2();
+      // B2-5b: after a successful v2 unlock, migrate to full-record v3 encryption.
+      // Transactional: on any pre-commit failure the vault stays v2 and intact.
+      await _maybeMigrateToV3(masterPassword);
     }
     return ok;
   }
@@ -133,6 +147,8 @@ class VaultService {
     } on VaultV3KeyException {
       return false; // wrong password / tampered wrapped DEK
     }
+    _v3Data = await openVaultV3Data(
+        dataKey: _sessionKey!, vaultId: material.vaultId);
     meta.lastUnlocked = DateTime.now();
     meta.unlockCount++;
     await meta.save();
@@ -188,6 +204,8 @@ class VaultService {
     final box = await _openV3Box();
     await box.put(_v3MaterialKey, rekeyed.material.encode());
     _sessionKey = rekeyed.dataKey;
+    _v3Data = await openVaultV3Data(
+        dataKey: rekeyed.dataKey, vaultId: material.vaultId);
     final meta = _meta.get('meta');
     if (meta != null) {
       meta.lastUnlocked = DateTime.now();
@@ -208,7 +226,59 @@ class VaultService {
     return VaultV3Material.decode(raw);
   }
 
-  void lock() => _sessionKey = null;
+  void lock() {
+    _sessionKey = null;
+    _v3Data = null;
+  }
+
+  /// Attempts a transactional v2 -> v3 full-record migration for the just-unlocked
+  /// v2 vault. On success the vault becomes v3 (session switched to the DEK data
+  /// subkey). On any pre-commit failure the vault stays v2 and fully intact; the
+  /// migration is retried on a later unlock.
+  Future<void> _maybeMigrateToV3(String masterPassword) async {
+    final v2Key = _sessionKey;
+    if (v2Key == null) return;
+    try {
+      final created = await vaultV3Live.create(masterPassword);
+      final tx = await openHiveMigration(
+        v2Passwords: _passwords,
+        v2Diary: _diary,
+        v2Finance: _finance,
+        v2Images: _images,
+        v2ImageIndex: _imageIndex,
+        meta: _meta,
+        v3MaterialBox: await _openV3Box(),
+        v3MaterialKey: _v3MaterialKey,
+        v2Key: v2Key,
+        created: created,
+        vaultId: created.material.vaultId,
+      );
+      await tx.migrate();
+      _sessionKey = created.dataKey;
+      _v3Data = await openVaultV3Data(
+          dataKey: created.dataKey, vaultId: created.material.vaultId);
+    } catch (_) {
+      // Aborted before the point of no return -> vault stays v2 and intact.
+    }
+  }
+
+  /// Completes or rolls back a v2 -> v3 migration interrupted mid-commit. Fast
+  /// path peeks the journal only. Runs at unlock before the version branch.
+  Future<void> _recoverPendingMigration() async {
+    final journal = await HiveMigrationJournal.open();
+    if (await journal.read() == null) return;
+    final tx = await openHiveMigrationForResume(
+      v2Passwords: _passwords,
+      v2Diary: _diary,
+      v2Finance: _finance,
+      v2Images: _images,
+      v2ImageIndex: _imageIndex,
+      meta: _meta,
+      v3MaterialBox: await _openV3Box(),
+      v3MaterialKey: _v3MaterialKey,
+    );
+    await tx.recover();
+  }
 
   // ── Raw access for device transfer (fields stay AES-encrypted with master key) ──
   List<PasswordEntry> get rawPasswords => _passwords.values.toList();
@@ -243,8 +313,13 @@ class VaultService {
     await _images.clear();
     await _imageIndex.clear();
     await _meta.clear();
+    // B2-5b: also wipe v3 storage (records + staging + material + journal).
+    await clearAllV3Storage();
+    await (await _openV3Box()).clear();
+    await (await HiveMigrationJournal.open()).clear();
     await _secureStorage.deleteAll();
     _sessionKey = null;
+    _v3Data = null;
   }
 
   Future<String> _safeDecrypt(String value) async {
@@ -303,6 +378,7 @@ class VaultService {
   // ── Passwords ─────────────────────────────────────────
   Future<List<PasswordEntry>> getPasswords() async {
     _requireUnlocked();
+    if (_v3Data != null) return _v3Data!.getPasswords();
     final raw = _passwords.values.toList()..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     final result = <PasswordEntry>[];
     for (final e in raw) {
@@ -325,6 +401,11 @@ class VaultService {
     required String password, String notes = '', String? iconEmoji,
   }) async {
     _requireUnlocked();
+    if (_v3Data != null) {
+      return _v3Data!.addPassword(
+          site: site, username: username, password: password,
+          notes: notes, iconEmoji: iconEmoji);
+    }
     final encSite  = await cryptoService.encrypt(site, _sessionKey!);
     final encUser  = await cryptoService.encrypt(username, _sessionKey!);
     final encPass  = await cryptoService.encrypt(password, _sessionKey!);
@@ -339,25 +420,34 @@ class VaultService {
 
   Future<String> decryptPassword(PasswordEntry entry) async {
     _requireUnlocked();
+    if (_v3Data != null) return _v3Data!.decryptPassword(entry);
     return cryptoService.decrypt(entry.encryptedPassword, _sessionKey!);
   }
 
   Future<void> deletePassword(String id) async {
     _requireUnlocked();
+    if (_v3Data != null) return _v3Data!.deletePassword(id);
     await _passwords.delete(id);
   }
 
   /// Returns the raw encrypted entry before it is deleted — for undo support.
-  PasswordEntry? getRawPasswordEntry(String id) => _passwords.get(id);
+  /// v3 undo is handled at a higher layer (v3 UI integration task); returns null.
+  PasswordEntry? getRawPasswordEntry(String id) =>
+      _v3Data != null ? null : _passwords.get(id);
 
   /// Re-inserts a previously deleted (raw/encrypted) entry directly into Hive.
   Future<void> restoreRawPasswordEntry(PasswordEntry entry) async {
     _requireUnlocked();
+    if (_v3Data != null) return _v3Data!.restoreRawPasswordEntry(entry);
     await _passwords.put(entry.id, entry);
   }
 
   Future<void> updatePassword(PasswordEntry entry, {String? newPassword, String? site, String? username, String? notes}) async {
     _requireUnlocked();
+    if (_v3Data != null) {
+      return _v3Data!.updatePassword(entry,
+          newPassword: newPassword, site: site, username: username, notes: notes);
+    }
     final stored = _passwords.get(entry.id);
     if (stored == null) return;
     if (newPassword != null) stored.encryptedPassword = await cryptoService.encrypt(newPassword, _sessionKey!);
@@ -371,6 +461,7 @@ class VaultService {
   // ── Diary ──────────────────────────────────────────────
   Future<List<DiaryEntry>> getDiaryEntries() async {
     _requireUnlocked();
+    if (_v3Data != null) return _v3Data!.getDiaryEntries();
     final raw = _diary.values.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     final result = <DiaryEntry>[];
     for (final e in raw) {
@@ -392,6 +483,10 @@ class VaultService {
     required String mood, List<String> tags = const [],
   }) async {
     _requireUnlocked();
+    if (_v3Data != null) {
+      return _v3Data!.addDiaryEntry(
+          title: title, content: content, mood: mood, tags: tags);
+    }
     final encTitle   = await cryptoService.encrypt(title, _sessionKey!);
     final encContent = await cryptoService.encrypt(content, _sessionKey!);
     final encMood    = await cryptoService.encrypt(mood, _sessionKey!);
@@ -405,16 +500,22 @@ class VaultService {
 
   Future<String> decryptDiaryContent(DiaryEntry entry) async {
     _requireUnlocked();
+    if (_v3Data != null) return _v3Data!.decryptDiaryContent(entry);
     return cryptoService.decrypt(entry.encryptedContent, _sessionKey!);
   }
 
   Future<void> deleteDiaryEntry(String id) async {
     _requireUnlocked();
+    if (_v3Data != null) return _v3Data!.deleteDiaryEntry(id);
     await _diary.delete(id);
   }
 
   Future<void> updateDiaryEntry(DiaryEntry entry, {String? title, String? content, String? mood}) async {
     _requireUnlocked();
+    if (_v3Data != null) {
+      return _v3Data!.updateDiaryEntry(entry,
+          title: title, content: content, mood: mood);
+    }
     final stored = _diary.get(entry.id);
     if (stored == null) return;
     if (title != null)   stored.title            = await cryptoService.encrypt(title, _sessionKey!);
@@ -430,6 +531,7 @@ class VaultService {
 
   Future<String> addDiaryImage(Uint8List bytes) async {
     _requireUnlocked();
+    if (_v3Data != null) return _v3Data!.addDiaryImage(bytes);
     final enc = await cryptoService.encrypt(base64.encode(bytes), _sessionKey!);
     final id  = _uuid.v4();
     await _images.put(id, enc);
@@ -438,23 +540,30 @@ class VaultService {
 
   Future<Uint8List?> getDiaryImage(String imageId) async {
     _requireUnlocked();
+    if (_v3Data != null) return _v3Data!.getDiaryImage(imageId);
     final enc = _images.get(imageId);
     if (enc == null) return null;
     return base64Decode(await cryptoService.decrypt(enc, _sessionKey!));
   }
 
+  /// v3 image-index reads are async (encrypted); the sync getter returns [] for
+  /// v3 and the association is read via the v3 UI integration task. Data is
+  /// migrated + encrypted regardless.
   List<String> getDiaryImageIds(String entryId) {
+    if (_v3Data != null) return const [];
     final raw = _imageIndex.get(entryId);
     return raw == null ? [] : List<String>.from(raw as List);
   }
 
   Future<void> setDiaryImageIds(String entryId, List<String> ids) async {
+    if (_v3Data != null) return _v3Data!.setDiaryImageIds(entryId, ids);
     if (ids.isEmpty) { await _imageIndex.delete(entryId); }
     else             { await _imageIndex.put(entryId, ids); }
   }
 
   Future<List<FinanceRecord>> getFinanceRecords() async {
     _requireUnlocked();
+    if (_v3Data != null) return _v3Data!.getFinanceRecords();
     final raw = _finance.values.toList()..sort((a, b) => b.date.compareTo(a.date));
     final result = <FinanceRecord>[];
     for (final e in raw) {
@@ -480,6 +589,12 @@ class VaultService {
     String? lineItemsJson,
   }) async {
     _requireUnlocked();
+    if (_v3Data != null) {
+      return _v3Data!.addFinanceRecord(
+          id: id, type: type, amount: amount, category: category,
+          description: description, date: date, currency: currency,
+          lineItemsJson: lineItemsJson);
+    }
     final encType  = await cryptoService.encrypt(type, _sessionKey!);
     final encCat   = await cryptoService.encrypt(category, _sessionKey!);
     final encDesc  = await cryptoService.encrypt(description, _sessionKey!);
@@ -493,6 +608,7 @@ class VaultService {
 
   Future<void> deleteFinanceRecord(String id) async {
     _requireUnlocked();
+    if (_v3Data != null) return _v3Data!.deleteFinanceRecord(id);
     await _finance.delete(id);
   }
 
@@ -501,6 +617,11 @@ class VaultService {
     String? description, DateTime? date, String? currency,
   }) async {
     _requireUnlocked();
+    if (_v3Data != null) {
+      return _v3Data!.updateFinanceRecord(record,
+          type: type, amount: amount, category: category,
+          description: description, date: date, currency: currency);
+    }
     final stored = _finance.get(record.id);
     if (stored == null) return;
     if (type != null)        stored.type        = await cryptoService.encrypt(type, _sessionKey!);
@@ -631,11 +752,13 @@ class VaultService {
   }
 
   // ── Stats ──────────────────────────────────────────────
-  Map<String, int> getCounts() => {
-    'passwords': _passwords.length,
-    'diary':     _diary.length,
-    'finance':   _finance.length,
-  };
+  Map<String, int> getCounts() => _v3Data != null
+      ? _v3Data!.getCounts()
+      : {
+          'passwords': _passwords.length,
+          'diary':     _diary.length,
+          'finance':   _finance.length,
+        };
 
 
   Future<bool> canUseBiometric() async {
