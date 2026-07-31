@@ -93,11 +93,17 @@ class VaultV3Material {
 }
 
 /// Result of creating a new v3 vault: the material to persist plus the data
-/// subkey used as the live session key.
+/// subkey used as the live session key and the backup subkey used to seal
+/// exports (backup_key = HKDF(DEK, 'sanctum/v3/backup')).
 class V3CreateResult {
-  const V3CreateResult({required this.material, required this.dataKey});
+  const V3CreateResult({
+    required this.material,
+    required this.dataKey,
+    required this.backupKey,
+  });
   final VaultV3Material material;
   final SecretKey dataKey;
+  final SecretKey backupKey;
 }
 
 /// Creates and unlocks v3 vault key material. No storage side effects.
@@ -136,6 +142,7 @@ class VaultV3Live {
         descriptor: descriptor,
       ),
       dataKey: keys.dataKey,
+      backupKey: keys.backupKey,
     );
   }
 
@@ -152,6 +159,17 @@ class VaultV3Live {
     );
     return keys.dataKey;
   }
+
+  /// Unlocks a v3 vault, returning the full derived key set (data + backup
+  /// subkeys). Used where the backup subkey is needed alongside the session key.
+  /// Throws [VaultV3KeyException] on a wrong password.
+  Future<VaultV3Keys> unlockKeys(String password, VaultV3Material material) =>
+      _kh.unlockWithPassword(
+        password: password,
+        descriptor: material.descriptor,
+        wrappedDek: material.wrappedDek,
+        vaultId: material.vaultId,
+      );
 
   /// Re-derives and returns the raw DEK for a v3 vault. Used by recovery-enable
   /// (which must wrap the DEK under a fresh recovery key). Throws
@@ -201,6 +219,7 @@ class VaultV3Live {
         recoveryCommit: previous.recoveryCommit,
       ),
       dataKey: keys.dataKey,
+      backupKey: keys.backupKey,
     );
   }
 }

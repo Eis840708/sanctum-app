@@ -270,4 +270,22 @@ class VaultV3Data {
         'diary': diary.length,
         'finance': finance.length,
       };
+
+  /// Exports every v3 box's raw on-disk values (each an already-sealed per-field
+  /// envelope JSON) keyed by box name -> {recordId -> raw stored string}. NO
+  /// decryption happens here — used by backup export so plaintext never
+  /// materialises; the outer backup_key layer re-seals the whole set.
+  Map<String, Map<String, String>> exportRawRecords() {
+    Map<String, String> dump(Box box) => <String, String>{
+          for (final k in box.keys)
+            if (box.get(k) is String) k.toString(): box.get(k) as String,
+        };
+    return <String, Map<String, String>>{
+      kV3PasswordsBox: dump(passwords),
+      kV3DiaryBox: dump(diary),
+      kV3FinanceBox: dump(finance),
+      kV3ImagesBox: dump(images),
+      kV3ImageIndexBox: dump(imageIndex),
+    };
+  }
 }

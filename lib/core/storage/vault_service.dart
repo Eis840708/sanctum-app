@@ -6,6 +6,8 @@ import 'package:local_auth/local_auth.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../crypto/crypto_service.dart';
+import '../crypto/v3/vault_v3_backup.dart';
+import '../crypto/v3/vault_v3_backup_hive.dart';
 import '../crypto/v3/vault_v3_data.dart';
 import '../crypto/v3/vault_v3_keys.dart';
 import '../crypto/v3/vault_v3_live.dart';
@@ -39,6 +41,11 @@ class VaultService {
   // B2-5b: set while a v3 (full-record-encrypted) vault is unlocked; data-access
   // methods delegate to it. Null for a v2 vault (old typed-box path).
   VaultV3Data? _v3Data;
+
+  // DEV-P0-03-UI 子項 A: the v3 backup subkey (HKDF(DEK,'sanctum/v3/backup')),
+  // held while a v3 vault is unlocked so exportVaultV3Backup can seal the outer
+  // container without re-prompting the password. Null for a v2 vault.
+  SecretKey? _v3BackupKey;
 
   late Box<PasswordEntry> _passwords;
   late Box<DiaryEntry>    _diary;
@@ -86,6 +93,7 @@ class VaultService {
     );
     await _meta.put('meta', meta);
     _sessionKey = created.dataKey;
+    _v3BackupKey = created.backupKey;
     _v3Data = await openVaultV3Data(
         dataKey: created.dataKey, vaultId: created.material.vaultId);
     // V-05: biometric is opt-in only — never auto-enabled on vault creation.
@@ -103,6 +111,9 @@ class VaultService {
     // B2-5b: finish or roll back a v2->v3 migration interrupted mid-commit before
     // reading vault state, so meta.version routes correctly.
     await _recoverPendingMigration();
+    // 子項 A: finish or roll back a v3 backup restore interrupted mid-commit
+    // (its own journal; can create meta on a fresh device).
+    await _recoverPendingBackupRestore();
     final meta = _meta.get('meta');
     if (meta == null) return false;
     // B2-5a: v3 vaults unlock via the DEK hierarchy. v2 vaults fall through to
@@ -143,7 +154,9 @@ class VaultService {
     if (raw is! String) return false;
     final material = VaultV3Material.decode(raw);
     try {
-      _sessionKey = await vaultV3Live.unlock(masterPassword, material);
+      final keys = await vaultV3Live.unlockKeys(masterPassword, material);
+      _sessionKey = keys.dataKey;
+      _v3BackupKey = keys.backupKey;
     } on VaultV3KeyException {
       return false; // wrong password / tampered wrapped DEK
     }
@@ -204,6 +217,7 @@ class VaultService {
     final box = await _openV3Box();
     await box.put(_v3MaterialKey, rekeyed.material.encode());
     _sessionKey = rekeyed.dataKey;
+    _v3BackupKey = rekeyed.backupKey;
     _v3Data = await openVaultV3Data(
         dataKey: rekeyed.dataKey, vaultId: material.vaultId);
     final meta = _meta.get('meta');
@@ -229,6 +243,7 @@ class VaultService {
   void lock() {
     _sessionKey = null;
     _v3Data = null;
+    _v3BackupKey = null;
   }
 
   /// Attempts a transactional v2 -> v3 full-record migration for the just-unlocked
@@ -255,6 +270,7 @@ class VaultService {
       );
       await tx.migrate();
       _sessionKey = created.dataKey;
+      _v3BackupKey = created.backupKey;
       _v3Data = await openVaultV3Data(
           dataKey: created.dataKey, vaultId: created.material.vaultId);
     } catch (_) {
@@ -278,6 +294,93 @@ class VaultService {
       v3MaterialKey: _v3MaterialKey,
     );
     await tx.recover();
+  }
+
+  /// Completes or rolls back a v3 backup restore interrupted mid-commit. Uses the
+  /// backup-restore journal (separate from migration); can create meta on a fresh
+  /// device. Fast path peeks the journal only. Runs at unlock.
+  Future<void> _recoverPendingBackupRestore() async {
+    final journal = await HiveBackupRestoreJournal.open();
+    if (await journal.read() == null) return;
+    final tx = await openHiveBackupRestoreForResume(
+      meta: _meta,
+      v3MaterialBox: await _openV3Box(),
+      v3MaterialKey: _v3MaterialKey,
+      v2Passwords: _passwords,
+      v2Diary: _diary,
+      v2Finance: _finance,
+      v2Images: _images,
+      v2ImageIndex: _imageIndex,
+    );
+    await tx.recover();
+  }
+
+  // ── v3 backup / restore (DEV-P0-03-UI 子項 A) ───────────────────────────────
+
+  /// Exports the current v3 vault as a `SNCB3` two-layer authenticated backup.
+  ///
+  /// Inner layer = the v3 boxes' on-disk per-field envelopes copied VERBATIM (no
+  /// decryption — no plaintext materialises); outer layer = the whole set sealed
+  /// under the backup subkey, header (with the embedded [VaultV3Material]) bound
+  /// as GCM AAD. Restorable on a NEW device with only this blob + the master
+  /// password (ruling §(a)). Throws [StateError] if the vault is not an unlocked
+  /// v3 vault.
+  Future<Uint8List> exportVaultV3Backup() async {
+    final v3 = _v3Data;
+    final backupKey = _v3BackupKey;
+    if (v3 == null || backupKey == null) {
+      throw StateError('exportVaultV3Backup requires an unlocked v3 vault');
+    }
+    final material = await _requireV3Material();
+    return vaultV3Backup.encode(
+      material: material,
+      recordsByBox: v3.exportRawRecords(),
+      backupKey: backupKey,
+      createdAt: DateTime.now(),
+    );
+  }
+
+  /// Restores a `SNCB3` v3 backup transactionally, keyed by [masterPassword].
+  ///
+  /// Reuses the B2-5b transactional engine (staged -> verified -> commitIntent ->
+  /// forward replay). A malformed/tampered container or wrong password is rejected
+  /// BEFORE any destructive step. On success the vault is v3 and unlocked. Throws
+  /// [BackupFormatException]/[VaultV3KeyException] on rejection.
+  Future<void> importV3Backup(Uint8List bytes,
+      {required String masterPassword}) async {
+    // 1. Parse header (no crypto) -> embedded material.
+    final header = vaultV3Backup.parseHeader(bytes);
+    // 2. Master password -> KEK -> unwrap DEK -> subkeys. Wrong password throws
+    //    VaultV3KeyException here (the backup's password check) before any write.
+    final keys = await vaultV3Backup.deriveKeys(
+      password: masterPassword,
+      material: header.material,
+    );
+    // 3. Authenticate + decrypt the outer body -> verbatim inner envelopes.
+    final recordsByBox = await vaultV3Backup.decodeBody(
+      bytes: bytes,
+      header: header,
+      backupKey: keys.backupKey,
+    );
+    // 4. Transactional stage -> verify -> atomic swap + install material + flip.
+    final tx = await openHiveBackupRestore(
+      recordsByBox: recordsByBox,
+      material: header.material,
+      meta: _meta,
+      v3MaterialBox: await _openV3Box(),
+      v3MaterialKey: _v3MaterialKey,
+      v2Passwords: _passwords,
+      v2Diary: _diary,
+      v2Finance: _finance,
+      v2Images: _images,
+      v2ImageIndex: _imageIndex,
+    );
+    await tx.migrate();
+    // 5. Enter the restored v3 session.
+    _sessionKey = keys.dataKey;
+    _v3BackupKey = keys.backupKey;
+    _v3Data = await openVaultV3Data(
+        dataKey: keys.dataKey, vaultId: header.material.vaultId);
   }
 
   // ── Raw access for device transfer (fields stay AES-encrypted with master key) ──
@@ -317,9 +420,11 @@ class VaultService {
     await clearAllV3Storage();
     await (await _openV3Box()).clear();
     await (await HiveMigrationJournal.open()).clear();
+    await (await HiveBackupRestoreJournal.open()).clear();
     await _secureStorage.deleteAll();
     _sessionKey = null;
     _v3Data = null;
+    _v3BackupKey = null;
   }
 
   Future<String> _safeDecrypt(String value) async {
