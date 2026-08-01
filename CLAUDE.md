@@ -1,7 +1,7 @@
 # SANCTUM 項目記憶（CLAUDE.md）
 
 > 每次開新對話先讀本檔。詳細歷史／決定緣由喺 `story book\PROJECT-LOG.md`（只喺需要追溯時先讀，唔使每次讀）。
-> 最後更新：2026-07-31（本次僅文檔更新，非實作改動）
+> 最後更新：2026-08-01（DEV-P0-03-UI 子項 B＋C 批核通過；release-sequencing 解除）
 
 ## 項目簡介
 
@@ -38,9 +38,12 @@ Flutter / Riverpod / Hive / go_router，版本 `1.5.0+6`。階段：功能原型
 - release gate 完整解除＝全記錄加密（B2-5b✓）＋實體量測（待）；八項 finding 改判待 v3 UI 整合＋B2-5a-native 完成後整體驗證。
 - **v3 UI 整合任務**（`DEV-P0-03-v3-UI-integration-work-order-v1.md`，DEV-P0-03-UI，P0/Alpha 前硬性，四子項）：
   - **子項 A（v3 backup/export）已批核並 pin commit**（批核 2026-07-30 `DEV-P0-03-A-批核決定-v1.md`；收尾＋commit 2026-07-31）：SNCB3 雙層容器、header 內嵌 VaultV3Material（§6 採 a，暴力面＝device、Argon2id gated、標準性質無新弱點）、全裝置 round-trip、raw blob 零明文、核心四檔＋vault_v3_keys 零改動、vault_service `905bf85b`。收尾全清：backup-schema 增補已附（`DEV-P0-03-A-backup-schema-v3-delta-v1.md` v1.1-delta）；committed suite 已含全裝置 round-trip＋既有-vault 拒絕存活（QA harness 冗餘已移除、獨有案例併入 producer `vault_v3_backup_real_adapter_test.dart`）；全 suite 180/180、analyze err0/warn2/info162。
-  - **子項 B（backup restore UI／接縫3）、C（shamir_screen recovery UI）、D（transfer 收端密碼／接縫1，需 UX 提案）**：待做。
+  - **子項 B（backup restore UI／接縫3）＋C（shamir_screen recovery UI）已批核**（2026-08-01 `DEV-P0-03-BC-批核決定-及-release-sequencing-解除-v1.md`）：UX note 四點覆核裁定條件逐條達標（B3-a 統一錯誤文案防 oracle、B3-b 密碼不留痕、B.4/C-f 強制 re-lock、B5-a 純加法、C-a 語義明示、C-b 無聚合分發、C-c v3 零主密碼顯示、C-d ≥12 同建立準則、C-e fail-closed 合併）；vault_service `905bf85b`→`c772ee51`（僅 +5 唯讀 `isV3Vault`）、crypto/shamir/models 零改動；總監親跑 test **187/187**、analyze err0/warn2/info162。**pin commit 待製作方回報**。
+  - **子項 D（transfer 收端密碼／接縫1）**：待做，UX 提案期限 2026-08-05。**不阻 release-sequencing，但阻 Internal Alpha。**
+  - **widget-test 分層**：本機環境 deadlock，本批接受「程式碼審查＋service 測試」分層，惟 **W-1 widget test（C-c／B3-a／C-b／B4-C-f 四項 UI 不變式）上調為 Internal Alpha 前硬性條件**；W-2 須記錄 deadlock 根因（期限 2026-08-05）。
   - UI/UX 設計凍結較寬（安全不變式必守、UX 判斷提案覆核）；使用者資產 UI 檔最小改＋before hash；crypto/shamir/models 零改動。
-  - **⚠ release-sequencing 未解除**：子項 A 只解 service 層一環；完全解除待 B＋C 整體驗收。自動遷移維持不得入任何 user-facing build（含 Alpha）。
+  - **✅ release-sequencing 已解除**（2026-08-01，A＋B＋C 三者 QA 均 PASS，「無備份／無還原／無碎片還原」三環全補）——**於 B＋C pin commit 落地時生效**。解除範圍僅限「自動遷移不得入 user-facing build」一項；**Internal Alpha 仍不開放**（待子項 D＋W-1 widget test＋B2-5a-native），「AES-256 全加密」宣稱 gate（TDR-2026-019）、實體量測（TDR-2026-026）、八項 finding「未通過」定級**一概不隨之解除**。
+  - **⚠ 子項 D 未完成前**：v3 vault 之 transfer 收端密碼確認未接，任何 build 不得視 transfer 為 v3 可用功能。
 - **B2-5a 方案已覆核（`DEV-P0-03-B2-5a-plan-director-ruling-v1.md`）**：確認「既有 vault 得 DEK ≡ 重加密 ≡ B2-5b 全記錄加密」耦合。裁**方案 A**：B2-5a 只接 DEK 骨架＋**新 vault** 用 DEK＋unlock 依 meta.version 分流（**v2 走舊路徑零改動零回歸**）＋V-05 auth-bound/V-08 recovery（限 v3 vault）＋coexistence 規格增補（v2/v3 並存須文件化）；**既有 v2 vault 遷移留 B2-5b**（連全記錄加密、V-06 AAD、遷移中斷 RETURN 測試）。
 - **B2-5a RETURN 級**（更正 B2-4 §3.3）：v2 解鎖零回歸＋v3 DEK round-trip（非「遷移中斷」，因 B2-5a 無遷移）。Argon2id 用臨時 above-floor 參數（self-describing 可 KEK 升級唔使重加密；floor 19MiB/t2/p1 仍守；release-gate 實體量測不阻塞 B2-5a）。V-05 native＝自寫最小 platform channel（crypto 綁定）＋local_auth（UI 觸發）。限期 07-29。
 - **B2-3 里程碑**：V-01（唯一 P0）事務化 restore/transfer 修復完成，QA 真 adapter harness＋總監親跑 test 95/95 雙重證實舊攻擊路徑失效；V-02 同步收尾。vault_service.dart 已改（`9c1316d4`，限 restore/transfer＋unlock resume hook）；真 adapter 回歸測試入 committed suite（fake-only 缺口閉合）。八項 finding 仍維持「未通過」至 B2 全批整體驗收。

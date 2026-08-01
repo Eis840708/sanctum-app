@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/crypto/v3/vault_v3_backup.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/i18n/lang_provider.dart';
 import '../../../core/storage/providers.dart';
@@ -266,10 +268,18 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
   Future<void> _startBackup() async {
     setState(() { _backingUp = true; _error = null; });
     try {
-      final data = await vaultService.exportVaultJson();
-      final json = const JsonEncoder.withIndent('  ').convert(data);
       final date = DateTime.now();
-      await BackupHelper.saveLocal(json, date);
+      if (vaultService.isV3Vault) {
+        // v3: binary SNCB3 two-layer container (inner per-field envelopes +
+        // outer backup_key). No plaintext is written to disk.
+        final bytes = await vaultService.exportVaultV3Backup();
+        await BackupHelper.saveLocalBytes(bytes, date);
+      } else {
+        // v2: existing JSON path (unchanged).
+        final data = await vaultService.exportVaultJson();
+        final json = const JsonEncoder.withIndent('  ').convert(data);
+        await BackupHelper.saveLocal(json, date);
+      }
       setState(() { _localDone = true; _backingUp = false; _lastBackup = date; });
     } catch (e) {
       setState(() { _backingUp = false; _error = '備份失敗：$e'; });
@@ -311,45 +321,162 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
 
     setState(() { _restoring = true; _error = null; });
     try {
-      final json     = await BackupHelper.readBackupFile();
-      final needsReunlock = await vaultService.importFromBackup(json);
-      if (!mounted) return;
+      // Read the raw bytes ONCE, then detect format by magic (never by trial).
+      final bytes = await BackupHelper.readBackupBytes();
+      if (VaultV3Backup.isBackupV3(bytes)) {
+        await _restoreV3(bytes); // owns its password prompt + unified errors
+      } else {
+        await _restoreV2FromBytes(bytes); // v2 JSON path (unchanged behaviour)
+      }
+    } catch (e) {
+      // Reached only for v2 / file-read errors; v3 handles its own messaging.
+      if (mounted) setState(() => _error = '還原失敗：$e');
+    } finally {
+      if (mounted) setState(() => _restoring = false);
+    }
+  }
 
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => AlertDialog(
-          backgroundColor: sc.bg2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(children: [
-            const Text('✅ ', style: TextStyle(fontSize: 20)),
-            Text('還原完成', style: TextStyle(color: sc.textPrimary, fontWeight: FontWeight.w600)),
-          ]),
-          content: Text(
-            needsReunlock
-              ? '所有資料已還原。\n\n請重新輸入主密碼解鎖 Vault。'
-              : '所有資料已還原。',
-            style: TextStyle(color: sc.textSecondary, fontSize: 13, height: 1.6),
+  /// v3 restore: prompt the master password (the decryption key), then import
+  /// transactionally. On ANY failure show a single unified message (no oracle)
+  /// and leave the existing vault intact; on success force a re-lock (B.4).
+  Future<void> _restoreV3(Uint8List bytes) async {
+    final pw = await _promptMasterPassword();
+    if (pw == null) return; // cancelled — abort quietly, existing vault intact
+    try {
+      await vaultService.importV3Backup(bytes, masterPassword: pw);
+    } catch (_) {
+      // B3-a: wrong password / tampered / truncated -> ONE message, no detail.
+      // B3-d: service is transactional (pre-commit reject) -> no partial state.
+      if (mounted) setState(() => _error = '主密碼錯誤或備份檔已損毀');
+      return;
+    }
+    if (!mounted) return;
+    // B.4: forced re-lock — no prefilled password.
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        backgroundColor: context.sc.bg2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(children: [
+          const Text('✅ ', style: TextStyle(fontSize: 20)),
+          Text('還原完成', style: TextStyle(color: context.sc.textPrimary, fontWeight: FontWeight.w600)),
+        ]),
+        content: Text(
+          '所有資料已還原。\n\n請以剛才輸入之主密碼重新解鎖 Vault。',
+          style: TextStyle(color: context.sc.textSecondary, fontSize: 13, height: 1.6),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // close dialog
+              ref.read(authProvider.notifier).lock();
+            },
+            child: const Text('確定', style: TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600)),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // close dialog
-                if (needsReunlock) {
-                  ref.read(authProvider.notifier).lock();
-                } else {
-                  Navigator.pop(context); // back to settings
-                }
-              },
-              child: const Text('確定', style: TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600)),
-            ),
-          ],
+        ],
+      ),
+    );
+  }
+
+  /// v2 restore from raw bytes. Applies the SAME sanity check as
+  /// BackupHelper.readBackupFile (B5-b: not weakened) before importing.
+  Future<void> _restoreV2FromBytes(Uint8List bytes) async {
+    final sc = context.sc;
+    late final Map<String, dynamic> json;
+    try {
+      json = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
+    } on FormatException {
+      throw Exception('檔案格式不正確，請選擇 .vault 備份檔案');
+    }
+    if (!json.containsKey('passwords') && !json.containsKey('diary')) {
+      throw Exception('檔案格式不正確，請選擇 .vault 備份檔案');
+    }
+    final needsReunlock = await vaultService.importFromBackup(json);
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        backgroundColor: sc.bg2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(children: [
+          const Text('✅ ', style: TextStyle(fontSize: 20)),
+          Text('還原完成', style: TextStyle(color: sc.textPrimary, fontWeight: FontWeight.w600)),
+        ]),
+        content: Text(
+          needsReunlock
+            ? '所有資料已還原。\n\n請重新輸入主密碼解鎖 Vault。'
+            : '所有資料已還原。',
+          style: TextStyle(color: sc.textSecondary, fontSize: 13, height: 1.6),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // close dialog
+              if (needsReunlock) {
+                ref.read(authProvider.notifier).lock();
+              } else {
+                Navigator.pop(context); // back to settings
+              }
+            },
+            child: const Text('確定', style: TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Master-password dialog for a v3 restore. The password is used solely as the
+  /// decryption key and is never stored (B3-b): no autofill/suggestions, the
+  /// controller is disposed on close, and the value never enters state/provider.
+  Future<String?> _promptMasterPassword() async {
+    final sc = context.sc;
+    final ctrl = TextEditingController();
+    var obscure = true;
+    try {
+      return await showDialog<String>(
+        context: context,
+        builder: (d) => StatefulBuilder(
+          builder: (ctx, setLocal) => AlertDialog(
+            backgroundColor: sc.bg2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text('輸入主密碼', style: TextStyle(color: sc.textPrimary, fontWeight: FontWeight.w600)),
+            content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('此備份以主密碼加密。請輸入建立此備份時的主密碼以還原。',
+                style: TextStyle(color: sc.textSecondary, fontSize: 13, height: 1.5)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: ctrl,
+                obscureText: obscure,
+                autofocus: true,
+                enableSuggestions: false,
+                autocorrect: false,
+                style: TextStyle(color: sc.textPrimary),
+                decoration: InputDecoration(
+                  hintText: '主密碼',
+                  filled: true, fillColor: sc.bg3,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  suffixIcon: IconButton(
+                    icon: Icon(obscure ? Icons.visibility : Icons.visibility_off, size: 18, color: sc.textTertiary),
+                    onPressed: () => setLocal(() => obscure = !obscure),
+                  ),
+                ),
+                onSubmitted: (_) => Navigator.pop(d, ctrl.text),
+              ),
+            ]),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(d, null),
+                child: Text('取消', style: TextStyle(color: sc.textSecondary))),
+              TextButton(onPressed: () => Navigator.pop(d, ctrl.text),
+                child: const Text('還原', style: TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600))),
+            ],
+          ),
         ),
       );
-    } catch (e) {
-      setState(() => _error = '還原失敗：$e');
     } finally {
-      setState(() => _restoring = false);
+      ctrl.dispose(); // B3-b: no lingering password buffer
     }
   }
 

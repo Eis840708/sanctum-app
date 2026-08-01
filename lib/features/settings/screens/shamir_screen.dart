@@ -2,8 +2,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/crypto/shamir_service.dart';
+import '../../../core/storage/providers.dart';
+import '../../../core/storage/vault_service.dart';
 import '../../../shared/theme/app_theme.dart';
 
 class ShamirScreen extends StatefulWidget {
@@ -36,7 +39,15 @@ class _ShamirScreenState extends State<ShamirScreen> with SingleTickerProviderSt
           tabs: const [Tab(text: '生成碎片'), Tab(text: '還原密碼')],
         ),
       ),
-      body: TabBarView(controller: _tab, children: const [_GenerateTab(), _RecoverTab()]),
+      // v3 vaults branch to the DEK-recovery flow (splits a full-entropy key,
+      // recovery sets a NEW master password); v2 vaults keep the legacy UI
+      // (splits the master password itself) byte-for-byte unchanged.
+      body: TabBarView(
+        controller: _tab,
+        children: vaultService.isV3Vault
+            ? const [_V3GenerateTab(), _V3RecoverTab()]
+            : const [_GenerateTab(), _RecoverTab()],
+      ),
     );
   }
 }
@@ -257,7 +268,319 @@ class _RecoverTabState extends State<_RecoverTab> {
   }
 }
 
+// ── v3 Generate Tab (DEK recovery — splits a full-entropy key, not the pw) ──────
+
+class _V3GenerateTab extends StatefulWidget {
+  const _V3GenerateTab();
+  @override
+  State<_V3GenerateTab> createState() => _V3GenerateTabState();
+}
+
+class _V3GenerateTabState extends State<_V3GenerateTab> {
+  final _pwCtrl = TextEditingController();
+  bool _showPw = false;
+  int _n = 5, _k = 3;
+  List<String>? _shareCodes; // base64 of the v3 share envelopes
+  bool _generating = false;
+  String? _error;
+
+  @override
+  void dispose() { _pwCtrl.dispose(); super.dispose(); }
+
+  Future<void> _generate() async {
+    // Master password is the DEK-unwrap key; do NOT trim (must match exactly).
+    final pw = _pwCtrl.text;
+    if (pw.isEmpty) { setState(() => _error = '請輸入主密碼'); return; }
+    setState(() { _generating = true; _error = null; });
+    try {
+      final shares = await vaultService.enableV3Recovery(pw, n: _n, k: _k);
+      setState(() {
+        _shareCodes = shares.map(base64Encode).toList();
+        _generating = false;
+      });
+    } catch (_) {
+      // Only failure here is a wrong master password (fail-closed).
+      setState(() { _generating = false; _error = '主密碼錯誤，無法生成碎片'; });
+    }
+  }
+
+  void _reset() => setState(() { _shareCodes = null; _pwCtrl.clear(); _error = null; });
+  void _snack(String m) { if (!mounted) return; ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m), backgroundColor: context.sc.bg3, behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2))); }
+  void _copy(String t) { Clipboard.setData(ClipboardData(text: t)); _snack('已複製'); }
+
+  // V-07: per-share export only — one share, one destination. No aggregate action.
+  void _exportOne(int i) {
+    if (_shareCodes == null) return;
+    Share.share(_shareCodes![i], subject: 'Sanctum 密閣 · 碎片 ${i+1}/$_n');
+  }
+
+  @override
+  Widget build(BuildContext context) => _shareCodes != null ? _results() : _config();
+
+  Widget _config() {
+    final sc = context.sc;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const _InfoBox('碎片備份將還原金鑰分成 N 份，只需集齊任意 K 份即可還原。\n請將每份碎片分別交給不同的可信任人士保管。'),
+        const SizedBox(height: 12),
+        // C-a: mandatory semantic notice — recovery does NOT reveal the password.
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: SanctumTheme.amber.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: SanctumTheme.amber.withValues(alpha: 0.3)),
+          ),
+          child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('⚠️', style: TextStyle(fontSize: 16)),
+            SizedBox(width: 8),
+            Expanded(child: Text(
+              '碎片還原不會顯示你的主密碼。集齊碎片後，你將設定一個「新的主密碼」來取回保險庫。',
+              style: TextStyle(fontSize: 12, color: SanctumTheme.amber, height: 1.5),
+            )),
+          ]),
+        ),
+        const SizedBox(height: 20),
+        const _Label('主密碼'), const SizedBox(height: 6),
+        TextField(
+          controller: _pwCtrl, obscureText: !_showPw,
+          enableSuggestions: false, autocorrect: false,
+          style: TextStyle(color: sc.textPrimary, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: '輸入您目前的主密碼', filled: true, fillColor: sc.bg2,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: sc.border)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: sc.border)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: SanctumTheme.gold)),
+            suffixIcon: IconButton(icon: Icon(_showPw ? Icons.visibility_off : Icons.visibility, size: 18, color: sc.textTertiary), onPressed: () => setState(() => _showPw = !_showPw)),
+          ),
+        ),
+        const SizedBox(height: 20),
+        _SliderRow(label: '總碎片數 (N)', value: _n, min: 3, max: 10, onChanged: (v) => setState(() { _n = v; if (_k > _n) _k = _n; })),
+        const SizedBox(height: 12),
+        _SliderRow(label: '重建所需數 (K)', value: _k, min: 2, max: _n, onChanged: (v) => setState(() => _k = v)),
+        const SizedBox(height: 8),
+        Text('任意 $_k 份（共 $_n 份）即可還原', style: const TextStyle(fontSize: 12, color: SanctumTheme.gold)),
+        if (_error != null) ...[
+          const SizedBox(height: 16),
+          _ErrorBox(_error!),
+        ],
+        const SizedBox(height: 24),
+        SizedBox(width: double.infinity, child: ElevatedButton(
+          onPressed: _generating ? null : _generate,
+          style: ElevatedButton.styleFrom(backgroundColor: SanctumTheme.gold, foregroundColor: sc.bg, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+          child: _generating ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: sc.bg)) : const Text('生成碎片', style: TextStyle(fontWeight: FontWeight.w600)),
+        )),
+      ]),
+    );
+  }
+
+  Widget _results() {
+    final sc = context.sc;
+    return Column(children: [
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        color: sc.bg2,
+        child: Row(children: [
+          const Icon(Icons.check_circle_outline, color: SanctumTheme.gold, size: 18), const SizedBox(width: 8),
+          Expanded(child: Text('已生成 $_n 份碎片（需 $_k 份還原）', style: TextStyle(fontSize: 13, color: sc.textPrimary))),
+        ]),
+      ),
+      Expanded(child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: _shareCodes!.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (_, i) => _ShareCard(index: i, total: _n, code: _shareCodes![i], onCopy: () => _copy(_shareCodes![i]), onExport: () => _exportOne(i)),
+      )),
+      SafeArea(child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        child: SizedBox(width: double.infinity, child: OutlinedButton(
+          onPressed: _reset,
+          style: OutlinedButton.styleFrom(foregroundColor: sc.textTertiary, side: BorderSide(color: sc.border), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+          child: const Text('完成'),
+        )),
+      )),
+    ]);
+  }
+}
+
+// ── v3 Recover Tab (reconstruct DEK, force a NEW master password) ────────────────
+
+class _V3RecoverTab extends ConsumerStatefulWidget {
+  const _V3RecoverTab();
+  @override
+  ConsumerState<_V3RecoverTab> createState() => _V3RecoverTabState();
+}
+
+class _V3RecoverTabState extends ConsumerState<_V3RecoverTab> {
+  final List<TextEditingController> _ctrls = [];
+  final _newPw1 = TextEditingController();
+  final _newPw2 = TextEditingController();
+  int _shareCount = 3;
+  bool _showPw = false;
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void initState() { super.initState(); _rebuild(_shareCount); }
+  @override
+  void dispose() {
+    for (final c in _ctrls) { c.dispose(); }
+    _newPw1.dispose();
+    _newPw2.dispose();
+    super.dispose();
+  }
+
+  void _rebuild(int count) {
+    while (_ctrls.length > count) { _ctrls.removeLast().dispose(); }
+    while (_ctrls.length < count) { _ctrls.add(TextEditingController()); }
+  }
+
+  Future<void> _recover() async {
+    setState(() => _error = null);
+    // 1. All share fields filled (pure UI validation, no crypto).
+    final shares = <Uint8List>[];
+    for (var i = 0; i < _ctrls.length; i++) {
+      final raw = _ctrls[i].text.trim();
+      if (raw.isEmpty) { setState(() => _error = '碎片 ${i+1} 未填寫'); return; }
+      Uint8List? bytes;
+      try { bytes = base64Decode(raw); } catch (_) { bytes = null; }
+      if (bytes == null) {
+        // C-e: parse failure merges into the single tamper message.
+        setState(() => _error = '碎片有誤或已竄改，無法還原'); return;
+      }
+      shares.add(bytes);
+    }
+    // 2. New master password — SAME strength rule as vault creation (>= 12);
+    //    not loosened, not tightened (C-d).
+    final pw1 = _newPw1.text, pw2 = _newPw2.text;
+    if (pw1.length < 12) { setState(() => _error = '新主密碼至少需 12 個字元'); return; }
+    if (pw1 != pw2) { setState(() => _error = '兩次輸入的新主密碼不一致'); return; }
+
+    setState(() => _busy = true);
+    try {
+      await vaultService.recoverV3(shares, pw1);
+    } on StateError {
+      // Recovery was never enabled for this vault — a config state, not a crypto
+      // failure. Distinct, non-leaking message.
+      if (mounted) setState(() { _busy = false; _error = '此保險庫尚未啟用碎片還原'; });
+      return;
+    } catch (_) {
+      // C-e: insufficient / mixed / duplicate index / MAC / commit / wrong R —
+      // ALL merged into one message. No partial result is surfaced or kept.
+      if (mounted) setState(() { _busy = false; _error = '碎片有誤或已竄改，無法還原'; });
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _busy = false);
+    // C-f: forced re-lock with the NEW master password (never displayed).
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        backgroundColor: context.sc.bg2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(children: [
+          const Text('✅ ', style: TextStyle(fontSize: 20)),
+          Text('還原完成', style: TextStyle(color: context.sc.textPrimary, fontWeight: FontWeight.w600)),
+        ]),
+        content: Text('保險庫已還原，並已設定新主密碼。\n\n請以你剛才設定的新主密碼重新解鎖。',
+          style: TextStyle(color: context.sc.textSecondary, fontSize: 13, height: 1.6)),
+        actions: [
+          TextButton(
+            onPressed: () { Navigator.pop(context); ref.read(authProvider.notifier).lock(); },
+            child: const Text('確定', style: TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const _InfoBox('請貼上收集到的碎片（至少建立時設定的 K 份），並設定一個新的主密碼。還原成功後，請以新主密碼重新解鎖。'),
+        const SizedBox(height: 20),
+        _SliderRow(label: '碎片數量', value: _shareCount, min: 2, max: 10, onChanged: (v) => setState(() { _shareCount = v; _rebuild(v); _error = null; })),
+        const SizedBox(height: 20),
+        for (int i = 0; i < _shareCount; i++) ...[
+          _Label('碎片 ${i+1}'), const SizedBox(height: 6),
+          TextField(
+            controller: _ctrls[i],
+            style: TextStyle(color: sc.textPrimary, fontSize: 12, fontFamily: 'monospace'),
+            maxLines: 2,
+            enableSuggestions: false, autocorrect: false,
+            decoration: InputDecoration(
+              hintText: '貼上碎片代碼', hintStyle: const TextStyle(fontSize: 11),
+              filled: true, fillColor: sc.bg2,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: sc.border)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: sc.border)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: SanctumTheme.gold)),
+            ),
+            onChanged: (_) => setState(() => _error = null),
+          ),
+          const SizedBox(height: 12),
+        ],
+        const SizedBox(height: 4),
+        const _Label('新主密碼（至少 12 個字元）'), const SizedBox(height: 6),
+        TextField(
+          controller: _newPw1, obscureText: !_showPw,
+          enableSuggestions: false, autocorrect: false,
+          style: TextStyle(color: sc.textPrimary, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: '設定新主密碼', filled: true, fillColor: sc.bg2,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: sc.border)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: sc.border)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: SanctumTheme.gold)),
+            suffixIcon: IconButton(icon: Icon(_showPw ? Icons.visibility_off : Icons.visibility, size: 18, color: sc.textTertiary), onPressed: () => setState(() => _showPw = !_showPw)),
+          ),
+        ),
+        const SizedBox(height: 12),
+        const _Label('確認新主密碼'), const SizedBox(height: 6),
+        TextField(
+          controller: _newPw2, obscureText: !_showPw,
+          enableSuggestions: false, autocorrect: false,
+          style: TextStyle(color: sc.textPrimary, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: '再次輸入新主密碼', filled: true, fillColor: sc.bg2,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: sc.border)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: sc.border)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: SanctumTheme.gold)),
+          ),
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 16),
+          _ErrorBox(_error!),
+        ],
+        const SizedBox(height: 20),
+        SizedBox(width: double.infinity, child: ElevatedButton(
+          onPressed: _busy ? null : _recover,
+          style: ElevatedButton.styleFrom(backgroundColor: SanctumTheme.gold, foregroundColor: sc.bg, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+          child: _busy ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: sc.bg)) : const Text('還原並設定新主密碼', style: TextStyle(fontWeight: FontWeight.w600)),
+        )),
+        const SizedBox(height: 40),
+      ]),
+    );
+  }
+}
+
 // ── Shared Widgets ────────────────────────────────────────────────────────────
+
+class _ErrorBox extends StatelessWidget {
+  final String text; const _ErrorBox(this.text);
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(10),
+    decoration: BoxDecoration(color: SanctumTheme.red.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+    child: Row(children: [
+      const Icon(Icons.error_outline, color: SanctumTheme.red, size: 16), const SizedBox(width: 8),
+      Expanded(child: Text(text, style: const TextStyle(fontSize: 12, color: SanctumTheme.red))),
+    ]),
+  );
+}
 
 class _ShareCard extends StatelessWidget {
   final int index, total;

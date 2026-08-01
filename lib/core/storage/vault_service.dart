@@ -70,6 +70,11 @@ class VaultService {
 
   bool get hasVault => _meta.isNotEmpty;
 
+  /// True when the current vault uses the v3 (full-record-encrypted) format.
+  /// Read-only; used by backup/recovery UI to branch v3 vs v2. Uses the SAME
+  /// meta.version=='v3' path as [unlock]'s routing — single source of truth.
+  bool get isV3Vault => _meta.get('meta')?.version == 'v3';
+
   Future<void> createVault(String masterPassword) async {
     // Clear any leftover data from a previous vault to prevent double-encryption
     await _passwords.clear();
