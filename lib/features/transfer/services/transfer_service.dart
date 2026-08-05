@@ -7,6 +7,20 @@ import 'package:cryptography/cryptography.dart';
 import '../../../core/crypto/crypto_service.dart';
 import '../../../core/storage/vault_service.dart';
 
+/// Raised when transfer is attempted on a v3 vault (DEV-P0-03-UI 子項 D, 方案 A).
+///
+/// Transfer serialisation is v2-only (reads the v2 typed boxes + salt/verifyHash);
+/// a v3 vault's typed boxes are empty, so a payload would be empty. We refuse
+/// rather than ship a broken payload (silent data loss).
+///
+/// TODO(DEV-P0-03-D-ext): full v3 transfer (SNCT3 payload, receiver DEK-unwrap
+/// password confirmation) + network hardening (DR-05) — deferred batch, post-Alpha.
+class TransferUnsupportedException implements Exception {
+  const TransferUnsupportedException();
+  @override
+  String toString() => 'TransferUnsupportedException';
+}
+
 /// Secure device-to-device vault transfer service.
 ///
 /// Security model:
@@ -74,17 +88,19 @@ class TransferService {
     });
   }
 
-  Future<void> _deserialize(String json) async {
-    final d = jsonDecode(json) as Map<String, dynamic>;
-    if (d['t'] != 'sct') throw const FormatException('Not a Sanctum transfer payload');
-    await vaultService.importTransfer(d);
-  }
-
   // ── WiFi Sender ──────────────────────────────────────────
   /// Starts a local HTTP server, returns {ip, port} for the QR code.
   Future<Map<String, dynamic>> startWifiSend(String keyHex) async {
     stop();
     _served = false;
+
+    // 子項 D (方案 A) 安全硬性: transfer is v2-only; a v3 vault serialises empty.
+    // This guard makes _serialize() UNREACHABLE for a v3 vault (the UI gates it in
+    // transfer_screen; this is the security backstop + proven by test). Refuse
+    // rather than ship a broken payload — silent data loss.
+    if (vaultService.isV3Vault) {
+      throw const TransferUnsupportedException();
+    }
 
     final plain     = await _serialize();
     final encrypted = await _enc(plain, keyHex);
@@ -134,6 +150,12 @@ class TransferService {
 
   bool get isServing => _server != null;
   bool get wasServed => _served;
+
+  Future<void> _deserialize(String json) async {
+    final d = jsonDecode(json) as Map<String, dynamic>;
+    if (d['t'] != 'sct') throw const FormatException('Not a Sanctum transfer payload');
+    await vaultService.importTransfer(d);
+  }
 
   // ── WiFi Receiver ────────────────────────────────────────
   Future<void> receiveWifi(String ip, int port, String keyHex,

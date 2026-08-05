@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../../core/storage/vault_service.dart';
 import '../../../shared/theme/app_theme.dart';
 import 'send_screen.dart';
 import 'receive_screen.dart';
@@ -50,35 +51,44 @@ class TransferScreen extends StatelessWidget {
 
             const SizedBox(height: 28),
 
-            Text('選擇角色', style: TextStyle(
-              fontSize: 11, color: sc.textTertiary, letterSpacing: 0.8)),
-            const SizedBox(height: 12),
+            // DEV-P0-03-UI 子項 D (方案 A): v3 vaults cannot use network transfer
+            // (transfer is v2-only). Gate the role cards here so a v3 vault can
+            // never reach the send/receive flow. Users use backup/restore instead.
+            // TODO(DEV-P0-03-D-ext): full v3 transfer + receiver password confirm.
+            if (vaultService.isV3Vault) ...[
+              const _V3TransferDisabledCard(),
+              const SizedBox(height: 28),
+            ] else ...[
+              Text('選擇角色', style: TextStyle(
+                fontSize: 11, color: sc.textTertiary, letterSpacing: 0.8)),
+              const SizedBox(height: 12),
 
-            // Send card
-            _RoleCard(
-              icon: Icons.phone_android,
-              iconColor: SanctumTheme.gold,
-              title: '舊手機（傳送方）',
-              subtitle: '在舊手機操作，生成 QR 碼供新手機掃描',
-              steps: const ['開啟此頁面', '點擊「開始傳送」', '讓新手機掃描 QR 碼'],
-              onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const SendScreen())),
-            ).animate().fadeIn(duration: 500.ms, delay: 100.ms).slideY(begin: 0.05),
+              // Send card
+              _RoleCard(
+                icon: Icons.phone_android,
+                iconColor: SanctumTheme.gold,
+                title: '舊手機（傳送方）',
+                subtitle: '在舊手機操作，生成 QR 碼供新手機掃描',
+                steps: const ['開啟此頁面', '點擊「開始傳送」', '讓新手機掃描 QR 碼'],
+                onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const SendScreen())),
+              ).animate().fadeIn(duration: 500.ms, delay: 100.ms).slideY(begin: 0.05),
 
-            const SizedBox(height: 14),
+              const SizedBox(height: 14),
 
-            // Receive card
-            _RoleCard(
-              icon: Icons.phone_iphone,
-              iconColor: SanctumTheme.blue,
-              title: '新手機（接收方）',
-              subtitle: '在新手機操作，掃描舊手機的 QR 碼',
-              steps: const ['開啟此頁面', '點擊「掃描 QR 碼」', '等待資料匯入'],
-              onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const ReceiveScreen())),
-            ).animate().fadeIn(duration: 500.ms, delay: 200.ms).slideY(begin: 0.05),
+              // Receive card
+              _RoleCard(
+                icon: Icons.phone_iphone,
+                iconColor: SanctumTheme.blue,
+                title: '新手機（接收方）',
+                subtitle: '在新手機操作，掃描舊手機的 QR 碼',
+                steps: const ['開啟此頁面', '點擊「掃描 QR 碼」', '等待資料匯入'],
+                onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const ReceiveScreen())),
+              ).animate().fadeIn(duration: 500.ms, delay: 200.ms).slideY(begin: 0.05),
 
-            const SizedBox(height: 28),
+              const SizedBox(height: 28),
+            ],
 
             // How it works
             Container(
@@ -130,6 +140,37 @@ class TransferScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// v3 vaults: network transfer is disabled (transfer is v2-only). Shown instead
+/// of the send/receive role cards. Directs users to backup/restore (.vault).
+class _V3TransferDisabledCard extends StatelessWidget {
+  const _V3TransferDisabledCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: SanctumTheme.amber.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: SanctumTheme.amber.withValues(alpha: 0.3)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.info_outline, size: 16, color: SanctumTheme.amber),
+          const SizedBox(width: 8),
+          Expanded(child: Text('網路轉移暫不支援', style: TextStyle(
+            fontSize: 14, fontWeight: FontWeight.w600, color: sc.textPrimary))),
+        ]),
+        const SizedBox(height: 8),
+        Text('v3 保險庫暫不支援網路轉移，請改用「備份／還原」（.vault 檔案）將資料轉移到新裝置。',
+          style: TextStyle(fontSize: 12, color: sc.textSecondary, height: 1.6)),
+      ]),
     );
   }
 }
