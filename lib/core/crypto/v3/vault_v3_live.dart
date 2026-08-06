@@ -38,6 +38,7 @@ class VaultV3Material {
     required this.descriptor,
     this.recoveryWrappedDek,
     this.recoveryCommit,
+    this.biometricWrappedDek,
   });
 
   final Uint8List vaultId; // 16 bytes
@@ -49,6 +50,13 @@ class VaultV3Material {
   final WrappedDek? recoveryWrappedDek;
   final Uint8List? recoveryCommit;
 
+  /// V-05 biometric auth-bound (DEV-P0-03 B2-5a-native, stage 1b): the SAME DEK
+  /// wrapped a third time by a hardware KeyStore key whose use is gated by
+  /// BiometricPrompt (label 'hw-bio'). Null until the user opts in. This is an
+  /// ADDITIVE convenience wrap — the password wrap ([wrappedDek]) is never
+  /// removed, so losing biometric never bricks the vault. Opt-in, v3-only.
+  final WrappedDek? biometricWrappedDek;
+
   VaultV3Material withRecovery({
     required WrappedDek recoveryWrappedDek,
     required Uint8List recoveryCommit,
@@ -59,6 +67,30 @@ class VaultV3Material {
         descriptor: descriptor,
         recoveryWrappedDek: recoveryWrappedDek,
         recoveryCommit: recoveryCommit,
+        biometricWrappedDek: biometricWrappedDek,
+      );
+
+  /// Adds (or replaces) the biometric hw-bio wrap. Never touches the password
+  /// wrap or recovery wrap.
+  VaultV3Material withBiometric({required WrappedDek biometricWrappedDek}) =>
+      VaultV3Material(
+        vaultId: vaultId,
+        wrappedDek: wrappedDek,
+        descriptor: descriptor,
+        recoveryWrappedDek: recoveryWrappedDek,
+        recoveryCommit: recoveryCommit,
+        biometricWrappedDek: biometricWrappedDek,
+      );
+
+  /// Removes the biometric wrap (disable / re-enroll). Password + recovery wraps
+  /// stay intact.
+  VaultV3Material withoutBiometric() => VaultV3Material(
+        vaultId: vaultId,
+        wrappedDek: wrappedDek,
+        descriptor: descriptor,
+        recoveryWrappedDek: recoveryWrappedDek,
+        recoveryCommit: recoveryCommit,
+        biometricWrappedDek: null,
       );
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -69,11 +101,14 @@ class VaultV3Material {
           'recovery_dek': recoveryWrappedDek!.toJson(),
         if (recoveryCommit != null)
           'recovery_commit': base64.encode(recoveryCommit!),
+        if (biometricWrappedDek != null)
+          'biometric_dek': biometricWrappedDek!.toJson(),
       };
 
   static VaultV3Material fromJson(Map<String, Object?> json) {
     final rec = json['recovery_dek'];
     final commit = json['recovery_commit'];
+    final bio = json['biometric_dek'];
     return VaultV3Material(
       vaultId: base64.decode(json['vault_id']! as String),
       wrappedDek: WrappedDek.fromJson(
@@ -83,6 +118,8 @@ class VaultV3Material {
       recoveryWrappedDek:
           rec == null ? null : WrappedDek.fromJson((rec as Map).cast<String, Object?>()),
       recoveryCommit: commit == null ? null : base64.decode(commit as String),
+      biometricWrappedDek:
+          bio == null ? null : WrappedDek.fromJson((bio as Map).cast<String, Object?>()),
     );
   }
 
@@ -217,6 +254,9 @@ class VaultV3Live {
         descriptor: descriptor,
         recoveryWrappedDek: previous.recoveryWrappedDek,
         recoveryCommit: previous.recoveryCommit,
+        // The hw-bio wrap protects the DEK, which rekey preserves, so it stays
+        // valid across a password reset.
+        biometricWrappedDek: previous.biometricWrappedDek,
       ),
       dataKey: keys.dataKey,
       backupKey: keys.backupKey,
