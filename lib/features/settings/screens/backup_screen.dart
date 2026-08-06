@@ -428,57 +428,15 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     );
   }
 
-  /// Master-password dialog for a v3 restore. The password is used solely as the
-  /// decryption key and is never stored (B3-b): no autofill/suggestions, the
-  /// controller is disposed on close, and the value never enters state/provider.
-  Future<String?> _promptMasterPassword() async {
-    final sc = context.sc;
-    final ctrl = TextEditingController();
-    var obscure = true;
-    try {
-      return await showDialog<String>(
+  /// Master-password prompt for a v3 restore. Returns the entered password, or
+  /// null on cancel. The controller lives in [_MasterPasswordDialog]'s State and
+  /// is disposed with it (after the route is removed), avoiding a use-after-dispose
+  /// during the dialog's dismiss animation. B3-b preserved: obscure, no
+  /// autofill/suggestions, and the value never enters app state/provider.
+  Future<String?> _promptMasterPassword() => showDialog<String>(
         context: context,
-        builder: (d) => StatefulBuilder(
-          builder: (ctx, setLocal) => AlertDialog(
-            backgroundColor: sc.bg2,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Text('輸入主密碼', style: TextStyle(color: sc.textPrimary, fontWeight: FontWeight.w600)),
-            content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('此備份以主密碼加密。請輸入建立此備份時的主密碼以還原。',
-                style: TextStyle(color: sc.textSecondary, fontSize: 13, height: 1.5)),
-              const SizedBox(height: 16),
-              TextField(
-                controller: ctrl,
-                obscureText: obscure,
-                autofocus: true,
-                enableSuggestions: false,
-                autocorrect: false,
-                style: TextStyle(color: sc.textPrimary),
-                decoration: InputDecoration(
-                  hintText: '主密碼',
-                  filled: true, fillColor: sc.bg3,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  suffixIcon: IconButton(
-                    icon: Icon(obscure ? Icons.visibility : Icons.visibility_off, size: 18, color: sc.textTertiary),
-                    onPressed: () => setLocal(() => obscure = !obscure),
-                  ),
-                ),
-                onSubmitted: (_) => Navigator.pop(d, ctrl.text),
-              ),
-            ]),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(d, null),
-                child: Text('取消', style: TextStyle(color: sc.textSecondary))),
-              TextButton(onPressed: () => Navigator.pop(d, ctrl.text),
-                child: const Text('還原', style: TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600))),
-            ],
-          ),
-        ),
+        builder: (_) => const _MasterPasswordDialog(),
       );
-    } finally {
-      ctrl.dispose(); // B3-b: no lingering password buffer
-    }
-  }
 
   static const _cloudOptions = [
     {'emoji': '📦', 'title': 'Google Drive', 'subtitle': 'Save to your Google Drive'},
@@ -493,6 +451,67 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
 }
 
 // ── Sub-widgets ───────────────────────────────────────────
+
+/// Master-password prompt for a v3 restore. The password is used solely as the
+/// decryption key and is never stored (B3-b): no autofill/suggestions, the
+/// controller is owned by this State and disposed with it, and the value never
+/// enters app state/provider.
+class _MasterPasswordDialog extends StatefulWidget {
+  const _MasterPasswordDialog();
+  @override
+  State<_MasterPasswordDialog> createState() => _MasterPasswordDialogState();
+}
+
+class _MasterPasswordDialogState extends State<_MasterPasswordDialog> {
+  final _ctrl = TextEditingController();
+  bool _obscure = true;
+
+  @override
+  void dispose() {
+    _ctrl.dispose(); // after the route is removed — no dismiss-animation race
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return AlertDialog(
+      backgroundColor: sc.bg2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text('輸入主密碼', style: TextStyle(color: sc.textPrimary, fontWeight: FontWeight.w600)),
+      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('此備份以主密碼加密。請輸入建立此備份時的主密碼以還原。',
+          style: TextStyle(color: sc.textSecondary, fontSize: 13, height: 1.5)),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _ctrl,
+          obscureText: _obscure,
+          autofocus: true,
+          enableSuggestions: false,
+          autocorrect: false,
+          style: TextStyle(color: sc.textPrimary),
+          decoration: InputDecoration(
+            hintText: '主密碼',
+            filled: true, fillColor: sc.bg3,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            suffixIcon: IconButton(
+              icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off, size: 18, color: sc.textTertiary),
+              onPressed: () => setState(() => _obscure = !_obscure),
+            ),
+          ),
+          onSubmitted: (_) => Navigator.pop(context, _ctrl.text),
+        ),
+      ]),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context, null),
+          child: Text('取消', style: TextStyle(color: sc.textSecondary))),
+        TextButton(onPressed: () => Navigator.pop(context, _ctrl.text),
+          child: const Text('還原', style: TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600))),
+      ],
+    );
+  }
+}
+
 class _StepCard extends StatelessWidget {
   final String number, title, subtitle;
   final bool done;
