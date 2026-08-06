@@ -79,6 +79,10 @@ flutter {
 }
 
 dependencies {
+    // V-05 biometric auth-bound DEK wrap (DEV-P0-03 B2-5a-native stage 1b).
+    // BiometricPrompt + CryptoObject, compat back to API23. Also pulled
+    // transitively by local_auth; declared explicitly for compile-time use.
+    implementation "androidx.biometric:biometric:1.1.0"
     testImplementation "junit:junit:4.13.2"
     androidTestImplementation "androidx.test:runner:1.6.2"
     androidTestImplementation "androidx.test:rules:1.6.1"

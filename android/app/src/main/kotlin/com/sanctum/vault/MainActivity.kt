@@ -12,6 +12,7 @@ import java.util.UUID
 class MainActivity : FlutterFragmentActivity() {
     private val ownerId = UUID.randomUUID().toString()
     private var shareChannel: MethodChannel? = null
+    private var keyAuthChannel: MethodChannel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         SharedImageRuntime.initialize(applicationContext)
@@ -47,6 +48,11 @@ class MainActivity : FlutterFragmentActivity() {
             }
         }
         SharedImageRuntime.setReady(ownerId)
+
+        // V-05 biometric auth-bound DEK wrap channel (DEV-P0-03 B2-5a-native).
+        keyAuthChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger, KeyAuthChannel.CHANNEL
+        ).also { it.setMethodCallHandler(KeyAuthChannel(this)) }
     }
 
     private fun handleShareIntent(intent: Intent?) {
@@ -113,6 +119,8 @@ class MainActivity : FlutterFragmentActivity() {
     override fun onDestroy() {
         shareChannel?.setMethodCallHandler(null)
         shareChannel = null
+        keyAuthChannel?.setMethodCallHandler(null)
+        keyAuthChannel = null
         SharedImageRuntime.detach(ownerId)
         super.onDestroy()
     }
