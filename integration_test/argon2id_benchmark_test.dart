@@ -1,16 +1,25 @@
 // AUTHORITATIVE on-device Argon2id measurement harness (DEV-P0-03 B2-5a-native
 // stage 1a / TDR-2026-026).
 //
-// Run on a PHYSICAL device in PROFILE mode (debug numbers are misleading):
-//   flutter test integration_test/argon2id_benchmark_test.dart --profile \
+// `flutter test` has NO --profile flag and runs on-device in DEBUG only, which
+// this harness refuses (JIT numbers mislead). The authoritative path is
+// `flutter drive` in PROFILE mode, which lands the result JSON on the HOST via
+// the test_driver responseDataCallback (test_driver/integration_test.dart):
+//
+//   flutter drive \
+//     --driver=test_driver/integration_test.dart \
+//     --target=integration_test/argon2id_benchmark_test.dart \
+//     --profile -d <deviceId> \
 //     --dart-define=SANCTUM_BENCH_GRID=full --dart-define=SANCTUM_BENCH_SAMPLES=6
 //
-// Grid names: smoke (default, floor combo only — for a quick CI-safe check),
+// Grid names: smoke (default, floor combo only — quick method check),
 // p1 (all lanes=1 combos — pure-Dart fast path), full (director-approved grid).
 //
-// The result JSON is (a) printed to the test log and (b) written to the app
-// documents dir as argon2id_benchmark_result.json for Eis to pull off-device.
-// Numbers are read directly from this JSON into the evidence file (摘要數字紀律).
+// The result JSON is (a) reported to the host driver -> build/
+// argon2id_benchmark_result.json, (b) printed to the run log, and (c) written to
+// the app documents dir on-device. Numbers are read directly from the host JSON
+// into the evidence file (摘要數字紀律). A convenience alternative that also runs
+// in profile is the auto-running app: lib/dev/argon2id_benchmark_app.dart.
 import 'dart:convert';
 import 'dart:io';
 
@@ -29,7 +38,7 @@ const bool _kAllowDebug =
     bool.fromEnvironment('SANCTUM_BENCH_ALLOW_DEBUG', defaultValue: false);
 
 void main() {
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('Argon2id KEK-derive sweep ($_kGridName)', (tester) async {
     final grid = gridFromName(_kGridName);
@@ -77,6 +86,10 @@ void main() {
     final file = File('${dir.path}/argon2id_benchmark_result.json');
     await file.writeAsString(json);
     debugPrint('[argon2id-bench] written: ${file.path}');
+
+    // Report to the host driver so the JSON lands OFF-device automatically
+    // (test_driver/integration_test.dart writes build/argon2id_benchmark_result.json).
+    binding.reportData = <String, dynamic>{'argon2id_benchmark': result.toJson()};
 
     // Sanity invariants (not timing assertions — timing is data, not pass/fail).
     expect(result.results, isNotEmpty);

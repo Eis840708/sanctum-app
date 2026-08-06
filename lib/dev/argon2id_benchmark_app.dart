@@ -1,14 +1,21 @@
-// DEV-ONLY ENTRYPOINT — run with:
-//   flutter run --profile -t lib/dev/argon2id_benchmark_app.dart \
+// DEV-ONLY ENTRYPOINT — the convenience run path (verified on a real Android
+// device in profile mode). Run with:
+//   flutter run --profile -t lib/dev/argon2id_benchmark_app.dart -d <deviceId> \
 //     --dart-define=SANCTUM_BENCH_GRID=p1 --dart-define=SANCTUM_BENCH_SAMPLES=6
+//
+// `flutter run` DOES accept --profile (unlike `flutter test`). The sweep starts
+// AUTOMATICALLY on launch (no manual tap needed) and the result JSON is printed
+// to the run console AND written to the app documents dir. Set
+// --dart-define=SANCTUM_BENCH_AUTORUN=false to require a manual tap instead.
 //
 // This file is a SEPARATE entrypoint. It is never imported by lib/main.dart, so
 // it is not part of the shipping app and cannot reach a release build. It exists
-// only so Eis (the measurement gate owner) can drive the on-device Argon2id
-// sweep from a tap-friendly screen instead of wiring adb integration_test.
+// only so the measurement gate owner (Eis) can drive the on-device Argon2id
+// sweep without wiring flutter drive.
 //
 // DEV-P0-03 B2-5a-native stage 1a (TDR-2026-026). See
 // DEV-P0-03-B2-5a-native-argon2id-harness-design-v1.
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -24,6 +31,13 @@ const String _kGridName =
     String.fromEnvironment('SANCTUM_BENCH_GRID', defaultValue: 'smoke');
 const int _kSamples =
     int.fromEnvironment('SANCTUM_BENCH_SAMPLES', defaultValue: 6);
+const bool _kAutoRun =
+    bool.fromEnvironment('SANCTUM_BENCH_AUTORUN', defaultValue: true);
+const String _kModel =
+    String.fromEnvironment('SANCTUM_BENCH_MODEL', defaultValue: '');
+const String _kAbi =
+    String.fromEnvironment('SANCTUM_BENCH_ABI', defaultValue: '');
+const int _kApi = int.fromEnvironment('SANCTUM_BENCH_API', defaultValue: 0);
 
 void main() {
   runApp(const _BenchmarkApp());
@@ -66,6 +80,17 @@ class _BenchmarkScreenState extends State<_BenchmarkScreen> {
 
   bool get _isDebug => Argon2idBenchmark.currentBuildMode == 'debug';
 
+  @override
+  void initState() {
+    super.initState();
+    if (_kModel.isNotEmpty) _model.text = _kModel;
+    if (_kAbi.isNotEmpty) _abi.text = _kAbi;
+    if (_kApi != 0) _api.text = '$_kApi';
+    if (_kAutoRun) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _run());
+    }
+  }
+
   void _append(String line) => setState(() => _log = '$_log$line\n');
 
   Future<void> _run() async {
@@ -100,6 +125,13 @@ class _BenchmarkScreenState extends State<_BenchmarkScreen> {
       setState(() => _outputPath = file.path);
       _append('--- RESULT JSON written to: ${file.path} ---');
       _append(json);
+      // Mirror the JSON to the run console so `flutter run` captures it without
+      // pulling the file off-device. debugPrint chunks long output line-by-line.
+      debugPrint('[argon2id-bench] RESULT JSON >>>');
+      for (final line in const LineSplitter().convert(json)) {
+        debugPrint(line);
+      }
+      debugPrint('[argon2id-bench] <<< RESULT JSON');
     } catch (e) {
       _append('ERROR: $e');
     } finally {
