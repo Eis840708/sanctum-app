@@ -35,6 +35,16 @@ void main() {
     await vaultService.init();
   });
 
+  // Isolate each test: clearVault() wipes ALL storage including the *__v3 data
+  // boxes (via clearAllV3Storage). Without this, a prior test's records — under
+  // a different vault's DEK — linger in the shared *__v3 boxes and getPasswords()
+  // decrypts them, raising a spurious SecretBoxAuthenticationError (MAC) that
+  // looks like a biometric bug but is stale cross-vault data.
+  setUp(() async {
+    await vaultService.clearVault();
+    vaultService.lock();
+  });
+
   test('v3 DEK round-trip through the real VaultService (no biometric)',
       () async {
     await vaultService.createVault('return-pw-1');
