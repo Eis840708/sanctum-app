@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import '../crypto/crypto_service.dart';
 import '../crypto/v3/vault_v3_backup.dart';
 import '../crypto/v3/vault_v3_backup_hive.dart';
+import '../crypto/v3/vault_v3_biometric.dart';
 import '../crypto/v3/vault_v3_data.dart';
 import '../crypto/v3/vault_v3_keys.dart';
 import '../crypto/v3/vault_v3_live.dart';
@@ -34,6 +35,10 @@ class VaultService {
     iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
   );
   final _uuid = const Uuid();
+
+  // V-05 biometric auth-bound DEK wrap (DEV-P0-03 B2-5a-native stage 1b). Uses
+  // the fixed 'com.sanctum.vault/keyauth' channel; host tests mock that channel.
+  final VaultV3Biometric _v3Biometric = VaultV3Biometric();
 
   SecretKey? _sessionKey;
   bool get isUnlocked => _sessionKey != null;
@@ -243,6 +248,62 @@ class VaultService {
     final raw = (await _openV3Box()).get(_v3MaterialKey);
     if (raw is! String) throw StateError('v3 vault material missing');
     return VaultV3Material.decode(raw);
+  }
+
+  /// True when the current v3 vault has opted into biometric unlock (a hw-bio
+  /// wrap is present). Read-only; false for a v2 vault or when unset. Never
+  /// throws — a query, not an operation.
+  Future<bool> get hasV3Biometric async {
+    if (_meta.get('meta')?.version != 'v3') return false;
+    final raw = (await _openV3Box()).get(_v3MaterialKey);
+    if (raw is! String) return false;
+    return VaultV3Material.decode(raw).biometricWrappedDek != null;
+  }
+
+  /// Enables biometric unlock for the current v3 vault (V-05 live wiring; v3
+  /// only, opt-in). Re-derives the DEK from [masterPassword], has the native
+  /// KeyStore/BiometricPrompt channel wrap it under a hardware, auth-bound key,
+  /// and persists the hw-bio wrap alongside the password wrap (never replacing
+  /// it). Throws [VaultV3KeyException] on a wrong password, [StateError] on a
+  /// non-v3 vault, [VaultV3BiometricException] if the device/native side cannot
+  /// provide a hardware biometric wrap (fail-closed — the vault stays
+  /// password-only).
+  Future<void> enableV3Biometric(String masterPassword) async {
+    final material = await _requireV3Material();
+    final dek = await vaultV3Live.unwrapDek(masterPassword, material);
+    final updated = await _v3Biometric.enroll(dek: dek, material: material);
+    final box = await _openV3Box();
+    await box.put(_v3MaterialKey, updated.encode());
+  }
+
+  /// Unlocks the current v3 vault with biometric (V-05; v3 only). Requires a
+  /// prior [enableV3Biometric]. On success the DEK data subkey becomes the live
+  /// session key. Fail-closed: throws [VaultV3BiometricException] when no wrap
+  /// exists or the native auth fails (the caller must fall back to the master
+  /// password), [StateError] on a non-v3 vault.
+  Future<void> unlockV3WithBiometric() async {
+    final material = await _requireV3Material();
+    final keys = await _v3Biometric.unlockKeys(material);
+    _sessionKey = keys.dataKey;
+    _v3BackupKey = keys.backupKey;
+    _v3Data = await openVaultV3Data(
+        dataKey: keys.dataKey, vaultId: material.vaultId);
+    final meta = _meta.get('meta');
+    if (meta != null) {
+      meta.lastUnlocked = DateTime.now();
+      meta.unlockCount++;
+      await meta.save();
+    }
+  }
+
+  /// Disables biometric unlock for the current v3 vault (V-05; v3 only). Drops
+  /// the native KeyStore key and removes the stored hw-bio wrap; the password
+  /// and recovery wraps are untouched. Throws [StateError] on a non-v3 vault.
+  Future<void> disableV3Biometric() async {
+    final material = await _requireV3Material();
+    final updated = await _v3Biometric.disable(material);
+    final box = await _openV3Box();
+    await box.put(_v3MaterialKey, updated.encode());
   }
 
   void lock() {
