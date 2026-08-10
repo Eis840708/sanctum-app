@@ -27,6 +27,10 @@ final Map<String, String> _secure = {};
 final Map<String, List<int>> _hw = {};
 final List<String> _keyauthCalls = [];
 
+/// When true, the fake unlock raises the distinct "key-invalidated" error the
+/// native side returns after a new biometric enrollment invalidates the key.
+bool _simulateInvalidated = false;
+
 String _hex(List<int> b) =>
     b.map((x) => x.toRadixString(16).padLeft(2, '0')).join();
 
@@ -72,6 +76,9 @@ void main() {
           _hw[_hex(vaultId)] = List<int>.from(dek);
           return Uint8List.fromList(List<int>.filled(60, 0xAB)); // opaque blob
         case 'unlock':
+          if (_simulateInvalidated) {
+            throw PlatformException(code: 'key-invalidated');
+          }
           final vaultId = a['vaultId']! as Uint8List;
           final dek = _hw[_hex(vaultId)];
           if (dek == null) {
@@ -93,6 +100,7 @@ void main() {
     _secure.clear();
     _hw.clear();
     _keyauthCalls.clear();
+    _simulateInvalidated = false;
     vaultService.lock();
     if (Hive.isBoxOpen('sanctum_meta')) {
       await Hive.box<VaultMeta>('sanctum_meta').clear();
@@ -217,6 +225,32 @@ void main() {
         throwsA(isA<VaultV3BiometricException>()),
       );
       expect(vaultService.isUnlocked, isFalse);
+    });
+
+    test('enrollment-invalidation (key-invalidated) -> fail-closed, distinct '
+        'signal, password recovers', () async {
+      await vaultService.createVault('pw');
+      await vaultService.addPassword(
+          site: 's.invalid', username: 'u', password: 'sec');
+      await vaultService.enableV3Biometric('pw');
+      _simulateInvalidated = true; // new biometric enrolled -> key dead
+      vaultService.lock();
+
+      Object? err;
+      try {
+        await vaultService.unlockV3WithBiometric();
+      } catch (e) {
+        err = e;
+      }
+      expect(err, isA<VaultV3BiometricException>());
+      // distinct signal surfaced (not a generic keystore error).
+      expect(err.toString(), contains('key-invalidated'));
+      expect(vaultService.isUnlocked, isFalse);
+
+      // Fail-closed recovery: master password still unlocks + data intact.
+      expect(await vaultService.unlock('pw'), isTrue);
+      final pws = await vaultService.getPasswords();
+      expect(await vaultService.decryptPassword(pws.single), 'sec');
     });
   });
 

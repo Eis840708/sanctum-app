@@ -3,6 +3,7 @@ package com.sanctum.vault
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyInfo
+import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
 import android.security.keystore.StrongBoxUnavailableException
 import androidx.biometric.BiometricManager
@@ -48,6 +49,14 @@ class KeyAuthChannel(private val activity: FragmentActivity) :
                 "disable" -> disable(call, result)
                 else -> result.notImplemented()
             }
+        } catch (e: KeyPermanentlyInvalidatedException) {
+            // A new device biometric was enrolled: this key is permanently dead
+            // (setInvalidatedByBiometricEnrollment). Delete it so a re-enroll can
+            // recreate, and signal fail-closed with a distinct code so the caller
+            // can drop the stale wrap and prompt re-enrollment. No key material
+            // is ever returned on this path.
+            call.argument<ByteArray>("vaultId")?.let { deleteKey(aliasFor(it)) }
+            result.error("key-invalidated", e.message, null)
         } catch (e: Exception) {
             result.error("keyauth-error", e.message, null)
         }
