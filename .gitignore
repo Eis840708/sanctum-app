@@ -38,3 +38,6 @@ secrets.dart
 apk_log.txt
 web_help.txt
 web_log.txt
+
+# CI analyze-gate scratch output (DEV-P0-03 CI-automation)
+analyze.txt

@@ -1,0 +1,51 @@
+name: CI
+
+# Test + analyze gate for the vault-v3 line (DEV-P0-03 CI-automation, post-crypto
+# bottleneck #2). Runs the host + widget test suite and enforces the analyze
+# baseline on every push / PR. Device-only integration_test (Argon2id benchmark,
+# biometric invalidation) is NOT run here - it needs a physical device and is
+# driven with `flutter drive` off-CI. Release signing is out of scope (bottleneck
+# #3, requires a CI secret before public release).
+
+on:
+  push:
+    branches: [feat/vault-v3, main]
+  pull_request:
+    branches: [feat/vault-v3, main]
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter 3.44.3 (pinned to the dev machine)
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.3'
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze (baseline err0 / warn<=2 / info<=162)
+        run: |
+          # flutter analyze exits non-zero when any issue exists (162 infos are
+          # within baseline), so capture the output and gate on parsed counts.
+          flutter analyze 2>&1 | tee analyze.txt || true
+          bash tool/ci_check_analyze.sh analyze.txt
+
+      - name: Test (host + widget suite)
+        # `flutter test` runs test/ only; integration_test/ (device-only) is
+        # excluded by design.
+        run: flutter test --reporter expanded
