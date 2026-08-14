@@ -1,0 +1,3 @@
+# Shell scripts must stay LF so bash on the Linux CI runner never sees a CR
+# (a CRLF shebang/line breaks `bash tool/ci_check_analyze.sh`). DEV-P0-03 CI.
+*.sh text eol=lf
