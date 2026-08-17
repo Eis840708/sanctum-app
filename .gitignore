@@ -41,3 +41,6 @@ web_log.txt
 
 # CI analyze-gate scratch output (DEV-P0-03 CI-automation)
 analyze.txt
+
+# Distributable build artifacts (Alpha packaging)
+dist/
