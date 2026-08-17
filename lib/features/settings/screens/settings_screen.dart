@@ -40,7 +40,10 @@ class SettingsScreen extends ConsumerWidget {
               trailing: Text('AES-256-GCM', style: TextStyle(fontSize: 12, color: sc.textTertiary))),
             _Row(icon: Icons.key_outlined, iconColor: SanctumTheme.gold,
               label: S.keyDerivation,
-              trailing: Text('PBKDF2-SHA256', style: TextStyle(fontSize: 12, color: sc.textTertiary))),
+              // v3 vaults derive the KEK with Argon2id; legacy v2 uses PBKDF2.
+              // Show the value that matches the current vault (A-1 accuracy).
+              trailing: Text(vaultService.isV3Vault ? 'Argon2id' : 'PBKDF2-SHA256',
+                  style: TextStyle(fontSize: 12, color: sc.textTertiary))),
             _Row(
               icon: Icons.shield_moon_outlined, iconColor: SanctumTheme.gold,
               label: S.shamirBackup,
