@@ -43,12 +43,12 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
     _Page(
       emoji: '📱',
       title:    _t(lang, zh: '換機也不怕',                   en: 'Switch Phones Safely',             ja: '機種変更も安心',                  ko: '안전하게 폰 교체'),
-      subtitle: _t(lang, zh: '安全轉移，零洩漏',              en: 'Secure Transfer, Zero Leaks',      ja: '安全転送、漏洩ゼロ',               ko: '안전 전송, 누출 없음'),
+      subtitle: _t(lang, zh: '安全轉移 · 即將推出',           en: 'Secure Transfer · Coming Soon',    ja: '安全転送 · 近日公開',              ko: '안전 전송 · 출시 예정'),
       body:     _t(lang,
-        zh: '透過 QR 碼 + WiFi 在兩部手機間\n安全傳輸所有資料，全程雙層加密，\n不經過任何伺服器。',
-        en: 'Transfer everything between phones via\nQR code + WiFi with double encryption.\nNo servers involved.',
-        ja: 'QRコード+WiFiで2台のスマートフォン間で\n二重暗号化して安全に転送。\nサーバーは介在しません。',
-        ko: 'QR 코드 + WiFi로 두 폰 간에\n이중 암호화로 안전하게 전송.\n서버 없이 직접 전송.',
+        zh: '未來將可透過 QR 碼 + WiFi 在兩部手機間\n加密傳輸資料，不經過任何伺服器。\n（安全裝置轉移功能即將推出）',
+        en: 'Soon you\'ll be able to move data between phones\nvia QR code + WiFi, encrypted, with no servers.\n(Secure device transfer — coming soon.)',
+        ja: '将来、QRコード+WiFiで2台のスマートフォン間で\nデータを暗号化して転送できます。サーバー不要。\n（安全なデバイス転送は近日公開）',
+        ko: '앞으로 QR 코드 + WiFi로 두 폰 간에\n데이터를 암호화하여 전송할 수 있습니다. 서버 없이.\n(안전한 기기 전송 — 출시 예정)',
       ),
     ),
   ];
