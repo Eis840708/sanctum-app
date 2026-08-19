@@ -60,18 +60,18 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Text('🔐', style: TextStyle(fontSize: 32)),
               const SizedBox(height: 12),
-              Text('2-Layer Backup', style: TextStyle(
+              Text(S.get('backup2Layer'), style: TextStyle(
                 fontSize: 18, fontWeight: FontWeight.w600, color: sc.textPrimary)),
               const SizedBox(height: 6),
               Text(
-                'Your vault is encrypted before saving. No one can read it without your master password.',
+                S.get('backupHeaderDesc'),
                 style: TextStyle(fontSize: 13, color: sc.textSecondary, height: 1.6)),
               if (_lastBackup != null) ...[
                 const SizedBox(height: 10),
                 Row(children: [
                   const Icon(Icons.check_circle, size: 14, color: SanctumTheme.green),
                   const SizedBox(width: 6),
-                  Text('Last backup: ${_fmt(_lastBackup!)}',
+                  Text('${S.get('backupLast')}: ${_fmt(_lastBackup!)}',
                     style: const TextStyle(fontSize: 12, color: SanctumTheme.green)),
                 ]),
               ],
@@ -89,12 +89,12 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: SanctumTheme.amber.withValues(alpha: 0.3)),
               ),
-              child: const Row(children: [
-                Text('⚠️', style: TextStyle(fontSize: 20)),
-                SizedBox(width: 12),
+              child: Row(children: [
+                const Text('⚠️', style: TextStyle(fontSize: 20)),
+                const SizedBox(width: 12),
                 Expanded(child: Text(
-                  'Backup & restore require the mobile app (APK). Install the app on your Android device to use these features.',
-                  style: TextStyle(fontSize: 13, color: SanctumTheme.amber, height: 1.5),
+                  S.get('backupWebNotice'),
+                  style: const TextStyle(fontSize: 13, color: SanctumTheme.amber, height: 1.5),
                 )),
               ]),
             ),
@@ -104,15 +104,15 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
           // ── Step 1: Local backup ─────────────────────────
           _StepCard(
             number: '1',
-            title: 'Local backup',
-            subtitle: 'Save encrypted .vault file on this device',
+            title: S.get('backupLocalTitle'),
+            subtitle: S.get('backupLocalSub'),
             done: _localDone,
           ),
           const SizedBox(height: 10),
           _StepCard(
             number: '2',
-            title: 'Cloud backup',
-            subtitle: 'Share to Google Drive, Email, WhatsApp…',
+            title: S.get('backupCloudTitle'),
+            subtitle: S.get('backupCloudSub'),
             done: _cloudDone,
           ),
 
@@ -125,7 +125,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               child: ElevatedButton.icon(
                 onPressed: kIsWeb ? null : _startBackup,
                 icon: const Icon(Icons.backup_outlined, size: 18),
-                label: const Text('Start Backup'),
+                label: Text(S.get('backupStart')),
               ),
             ),
 
@@ -135,13 +135,13 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               child: Column(children: [
                 const CircularProgressIndicator(color: SanctumTheme.gold),
                 const SizedBox(height: 12),
-                Text('Encrypting and saving…', style: TextStyle(color: sc.textSecondary, fontSize: 13)),
+                Text(S.get('backupEncrypting'), style: TextStyle(color: sc.textSecondary, fontSize: 13)),
               ]),
             )),
 
           // ── Cloud options (after local done) ─────────────
           if (_localDone && !_cloudDone) ...[
-            Text('Step 2 — Choose where to share', style: TextStyle(
+            Text(S.get('backupStep2'), style: TextStyle(
               fontSize: 14, fontWeight: FontWeight.w600, color: sc.textPrimary)),
             const SizedBox(height: 12),
             ..._cloudOptions.map((opt) => Padding(
@@ -168,15 +168,15 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               child: Column(children: [
                 const Text('✅', style: TextStyle(fontSize: 32)),
                 const SizedBox(height: 10),
-                const Text('備份完成！', style: TextStyle(
+                Text(S.get('backupDone'), style: const TextStyle(
                   fontSize: 16, fontWeight: FontWeight.w600, color: SanctumTheme.green)),
                 const SizedBox(height: 6),
-                Text('本地副本已儲存 · 雲端副本已傳送',
+                Text(S.get('backupDoneSub'),
                   style: TextStyle(fontSize: 13, color: sc.textSecondary)),
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: () => setState(() { _localDone = false; _cloudDone = false; _error = null; }),
-                  child: const Text('再次備份', style: TextStyle(color: SanctumTheme.gold)),
+                  child: Text(S.get('backupAgain'), style: const TextStyle(color: SanctumTheme.gold)),
                 ),
               ]),
             ),
@@ -203,7 +203,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
           const SizedBox(height: 32),
 
           // ── Restore section ──────────────────────────────
-          Text('還原', style: TextStyle(
+          Text(S.get('restoreSection'), style: TextStyle(
             fontSize: 10, color: sc.textTertiary, letterSpacing: 0.8)),
           const SizedBox(height: 10),
           Container(
@@ -216,7 +216,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               _RestoreRow(
                 icon: Icons.file_open_outlined,
                 iconColor: SanctumTheme.blue,
-                label: '從 .vault 檔案還原',
+                label: S.get('restoreFromFile'),
                 onTap: _restoring ? null : _restoreFromFile,
                 loading: _restoring,
               ),
@@ -234,7 +234,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               Icon(Icons.info_outline, size: 13, color: sc.textTertiary),
               const SizedBox(width: 8),
               Expanded(child: Text(
-                '還原將覆蓋現有所有資料。還原完成後需重新輸入主密碼解鎖。',
+                S.get('restoreWarn'),
                 style: TextStyle(fontSize: 12, color: sc.textTertiary, height: 1.5),
               )),
             ]),
@@ -251,13 +251,13 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               border: Border.all(color: sc.border),
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('運作方式', style: TextStyle(
+              Text(S.get('backupHowTitle'), style: TextStyle(
                 fontSize: 12, fontWeight: FontWeight.w600, color: sc.textSecondary)),
               const SizedBox(height: 8),
-              const _InfoRow(icon: '🔐', text: '儲存前以 AES-256-GCM 加密'),
-              const _InfoRow(icon: '📱', text: '本地副本保留在你的裝置上'),
-              const _InfoRow(icon: '☁️', text: '雲端副本與本地為同一加密檔案'),
-              const _InfoRow(icon: '🔑', text: '只有你的主密鑰才能還原'),
+              _InfoRow(icon: '🔐', text: S.get('backupHow1')),
+              _InfoRow(icon: '📱', text: S.get('backupHow2')),
+              _InfoRow(icon: '☁️', text: S.get('backupHow3')),
+              _InfoRow(icon: '🔑', text: S.get('backupHow4')),
             ]),
           ),
         ]),
@@ -282,7 +282,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       }
       setState(() { _localDone = true; _backingUp = false; _lastBackup = date; });
     } catch (e) {
-      setState(() { _backingUp = false; _error = '備份失敗：$e'; });
+      setState(() { _backingUp = false; _error = '${S.get('backupFailed')}：$e'; });
     }
   }
 
@@ -291,7 +291,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       await BackupHelper.shareFile();
       setState(() => _cloudDone = true);
     } catch (e) {
-      setState(() => _error = '分享失敗：$e');
+      setState(() => _error = '${S.get('shareFailed')}：$e');
     }
   }
 
@@ -303,16 +303,16 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       builder: (d) => AlertDialog(
         backgroundColor: sc.bg2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('還原備份', style: TextStyle(color: sc.textPrimary, fontWeight: FontWeight.w600)),
+        title: Text(S.restore, style: TextStyle(color: sc.textPrimary, fontWeight: FontWeight.w600)),
         content: Text(
-          '這將覆蓋現有所有密碼、記事及財務資料。\n\n還原完成後需重新輸入主密碼解鎖。\n\n確定繼續嗎？',
+          S.get('restoreConfirmBody'),
           style: TextStyle(color: sc.textSecondary, fontSize: 13, height: 1.6),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(d, false),
-            child: Text('取消', style: TextStyle(color: sc.textSecondary))),
+            child: Text(S.cancel, style: TextStyle(color: sc.textSecondary))),
           TextButton(onPressed: () => Navigator.pop(d, true),
-            child: const Text('確定還原', style: TextStyle(color: SanctumTheme.red, fontWeight: FontWeight.w600))),
+            child: Text(S.get('restoreConfirmYes'), style: const TextStyle(color: SanctumTheme.red, fontWeight: FontWeight.w600))),
         ],
       ),
     ) ?? false;
@@ -330,7 +330,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       }
     } catch (e) {
       // Reached only for v2 / file-read errors; v3 handles its own messaging.
-      if (mounted) setState(() => _error = '還原失敗：$e');
+      if (mounted) setState(() => _error = '${S.get('restoreFailed')}：$e');
     } finally {
       if (mounted) setState(() => _restoring = false);
     }
@@ -347,7 +347,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     } catch (_) {
       // B3-a: wrong password / tampered / truncated -> ONE message, no detail.
       // B3-d: service is transactional (pre-commit reject) -> no partial state.
-      if (mounted) setState(() => _error = '主密碼錯誤或備份檔已損毀');
+      if (mounted) setState(() => _error = S.get('restoreBadPw'));
       return;
     }
     if (!mounted) return;
@@ -360,10 +360,10 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(children: [
           const Text('✅ ', style: TextStyle(fontSize: 20)),
-          Text('還原完成', style: TextStyle(color: context.sc.textPrimary, fontWeight: FontWeight.w600)),
+          Text(S.get('restoreDone'), style: TextStyle(color: context.sc.textPrimary, fontWeight: FontWeight.w600)),
         ]),
         content: Text(
-          '所有資料已還原。\n\n請以剛才輸入之主密碼重新解鎖 Vault。',
+          S.get('restoreDoneReunlock'),
           style: TextStyle(color: context.sc.textSecondary, fontSize: 13, height: 1.6),
         ),
         actions: [
@@ -372,7 +372,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               Navigator.pop(context); // close dialog
               ref.read(authProvider.notifier).lock();
             },
-            child: const Text('確定', style: TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600)),
+            child: Text(S.confirm, style: const TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -387,10 +387,10 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     try {
       json = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
     } on FormatException {
-      throw Exception('檔案格式不正確，請選擇 .vault 備份檔案');
+      throw Exception(S.get('restoreBadFormat'));
     }
     if (!json.containsKey('passwords') && !json.containsKey('diary')) {
-      throw Exception('檔案格式不正確，請選擇 .vault 備份檔案');
+      throw Exception(S.get('restoreBadFormat'));
     }
     final needsReunlock = await vaultService.importFromBackup(json);
     if (!mounted) return;
@@ -403,12 +403,12 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(children: [
           const Text('✅ ', style: TextStyle(fontSize: 20)),
-          Text('還原完成', style: TextStyle(color: sc.textPrimary, fontWeight: FontWeight.w600)),
+          Text(S.get('restoreDone'), style: TextStyle(color: sc.textPrimary, fontWeight: FontWeight.w600)),
         ]),
         content: Text(
           needsReunlock
-            ? '所有資料已還原。\n\n請重新輸入主密碼解鎖 Vault。'
-            : '所有資料已還原。',
+            ? S.get('restoreDoneReunlock2')
+            : S.get('restoreDoneSimple'),
           style: TextStyle(color: sc.textSecondary, fontSize: 13, height: 1.6),
         ),
         actions: [
@@ -421,7 +421,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                 Navigator.pop(context); // back to settings
               }
             },
-            child: const Text('確定', style: TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600)),
+            child: Text(S.confirm, style: const TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -438,11 +438,11 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
         builder: (_) => const _MasterPasswordDialog(),
       );
 
-  static const _cloudOptions = [
-    {'emoji': '📦', 'title': 'Google Drive', 'subtitle': 'Save to your Google Drive'},
-    {'emoji': '📧', 'title': 'Email to myself', 'subtitle': 'Send the file to your email'},
-    {'emoji': '💬', 'title': 'WhatsApp / LINE', 'subtitle': 'Send to your saved messages'},
-    {'emoji': '📋', 'title': 'Local only', 'subtitle': 'Skip cloud — keep only on device'},
+  List<Map<String, String>> get _cloudOptions => [
+    {'emoji': '📦', 'title': 'Google Drive', 'subtitle': S.get('cloudDriveSub')},
+    {'emoji': '📧', 'title': S.get('cloudEmailTitle'), 'subtitle': S.get('cloudEmailSub')},
+    {'emoji': '💬', 'title': 'WhatsApp / LINE', 'subtitle': S.get('cloudMsgSub')},
+    {'emoji': '📋', 'title': S.get('cloudLocalTitle'), 'subtitle': S.get('cloudLocalSub')},
   ];
 
   String _fmt(DateTime d) =>
@@ -478,9 +478,9 @@ class _MasterPasswordDialogState extends State<_MasterPasswordDialog> {
     return AlertDialog(
       backgroundColor: sc.bg2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Text('輸入主密碼', style: TextStyle(color: sc.textPrimary, fontWeight: FontWeight.w600)),
+      title: Text(S.get('enterMasterPw'), style: TextStyle(color: sc.textPrimary, fontWeight: FontWeight.w600)),
       content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('此備份以主密碼加密。請輸入建立此備份時的主密碼以還原。',
+        Text(S.get('restorePwPrompt'),
           style: TextStyle(color: sc.textSecondary, fontSize: 13, height: 1.5)),
         const SizedBox(height: 16),
         TextField(
@@ -491,7 +491,7 @@ class _MasterPasswordDialogState extends State<_MasterPasswordDialog> {
           autocorrect: false,
           style: TextStyle(color: sc.textPrimary),
           decoration: InputDecoration(
-            hintText: '主密碼',
+            hintText: S.masterPassword,
             filled: true, fillColor: sc.bg3,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             suffixIcon: IconButton(
@@ -504,9 +504,9 @@ class _MasterPasswordDialogState extends State<_MasterPasswordDialog> {
       ]),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context, null),
-          child: Text('取消', style: TextStyle(color: sc.textSecondary))),
+          child: Text(S.cancel, style: TextStyle(color: sc.textSecondary))),
         TextButton(onPressed: () => Navigator.pop(context, _ctrl.text),
-          child: const Text('還原', style: TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600))),
+          child: Text(S.get('restoreConfirmYes'), style: const TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600))),
       ],
     );
   }
