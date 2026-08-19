@@ -76,7 +76,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   List<DiaryEntry> get _filteredDiary => _query.isEmpty ? [] :
     _diary.where((d) =>
-      d.title.toLowerCase().contains(_query)).toList();
+      d.title.toLowerCase().contains(_query) ||
+      d.encryptedContent.toLowerCase().contains(_query) ||
+      d.mood.toLowerCase().contains(_query)).toList();
 
   List<FinanceRecord> get _filteredFinance => _query.isEmpty ? [] :
     _finance.where((f) =>
@@ -171,10 +173,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       Text(S.search, style: TextStyle(fontSize: 16, color: context.sc.textSecondary, fontWeight: FontWeight.w500)),
       SizedBox(height: 6),
       Text(S.searchHint, style: TextStyle(fontSize: 13, color: context.sc.textTertiary)),
-      SizedBox(height: 20),
-      // Debug: show counts
-      Text('已載入: 密碼${_passwords.length} 日記${_diary.length} 財務${_finance.length}',
-        style: TextStyle(fontSize: 10, color: context.sc.textTertiary)),
     ]),
   );
 
@@ -183,11 +181,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       Text('😶', style: TextStyle(fontSize: 40)),
       SizedBox(height: 12),
       Text(S.noResults, style: TextStyle(fontSize: 16, color: context.sc.textSecondary)),
-      SizedBox(height: 6),
-      Text('查詢: "$_query"', style: TextStyle(fontSize: 11, color: context.sc.textTertiary)),
-      SizedBox(height: 4),
-      Text('日記標題: ${_diary.map((d) => d.title).join(", ")}',
-        style: TextStyle(fontSize: 10, color: context.sc.textTertiary)),
     ]),
   );
 }

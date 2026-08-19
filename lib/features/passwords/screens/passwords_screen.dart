@@ -118,7 +118,7 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
                           ..hideCurrentSnackBar()
                           ..showSnackBar(SnackBar(
                             content: Text('已刪除「$site」'),
-                            duration: const Duration(seconds: 5),
+                            duration: const Duration(seconds: 10),
                             backgroundColor: sc.bg2,
                             behavior: SnackBarBehavior.floating,
                             action: SnackBarAction(
@@ -271,7 +271,7 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
                       ..hideCurrentSnackBar()
                       ..showSnackBar(SnackBar(
                         content: Text('已刪除「${entry.site}」'),
-                        duration: const Duration(seconds: 5),
+                        duration: const Duration(seconds: 10),
                         backgroundColor: sc.bg2,
                         behavior: SnackBarBehavior.floating,
                         action: SnackBarAction(

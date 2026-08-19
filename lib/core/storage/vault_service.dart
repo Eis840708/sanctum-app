@@ -16,6 +16,7 @@ import '../crypto/v3/vault_v3_migrate_hive.dart';
 import '../crypto/v3/vault_v3_recovery.dart';
 import '../crypto/v3/vault_v3_restore.dart';
 import '../crypto/v3/vault_v3_restore_hive.dart';
+import '../i18n/strings.dart';
 import '../models/models.dart';
 
 class VaultService {
@@ -953,7 +954,7 @@ class VaultService {
   Future<bool> unlockWithBiometric() async {
     final auth = LocalAuthentication();
     final ok = await auth.authenticate(
-      localizedReason: '使用生物識別解鎖保險庫',
+      localizedReason: S.get('bioReason'),
       options: const AuthenticationOptions(biometricOnly: false),
     );
     if (!ok) return false;
