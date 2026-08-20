@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import '../../../core/i18n/strings.dart';
 import '../../../shared/theme/app_theme.dart';
 import '../services/transfer_service.dart';
 
@@ -62,7 +63,7 @@ class _SendScreenState extends State<SendScreen> {
     if (transferService.wasServed) {
       setState(() => _state = _SendState.done);
     } else if (_secs <= 0) {
-      setState(() { _state = _SendState.error; _error = 'QR Code 已過期，請重新生成。'; });
+      setState(() { _state = _SendState.error; _error = S.get('qrExpired'); });
     }
   }
 
@@ -84,7 +85,7 @@ class _SendScreenState extends State<SendScreen> {
           icon: Icon(Icons.arrow_back, color: sc.textSecondary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('舊手機：傳送資料',
+        title: Text(S.get('sendDataTitle'),
             style: TextStyle(fontSize: 16, color: sc.textPrimary)),
       ),
       body: switch (_state) {
@@ -92,7 +93,7 @@ class _SendScreenState extends State<SendScreen> {
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               const CircularProgressIndicator(color: SanctumTheme.gold, strokeWidth: 2),
               const SizedBox(height: 16),
-              Text('正在準備加密資料…', style: TextStyle(color: sc.textTertiary, fontSize: 13)),
+              Text(S.get('preparingData'), style: TextStyle(color: sc.textTertiary, fontSize: 13)),
             ])),
         _SendState.ready  => _buildReady(),
         _SendState.done   => _buildDone(),
@@ -165,7 +166,7 @@ class _SendScreenState extends State<SendScreen> {
                   color: urgent ? SanctumTheme.red : SanctumTheme.gold,
                 )),
                 const SizedBox(width: 6),
-                Text('後過期', style: TextStyle(
+                Text(S.get('expiresSuffix'), style: TextStyle(
                   fontSize: 12,
                   color: (urgent ? SanctumTheme.red : SanctumTheme.gold).withValues(alpha: 0.7),
                 )),
@@ -183,7 +184,7 @@ class _SendScreenState extends State<SendScreen> {
               ).animate(onPlay: (c) => c.repeat())
                .fadeOut(duration: 800.ms).then().fadeIn(duration: 800.ms),
               const SizedBox(width: 8),
-              Text('等待新手機掃描…',
+              Text(S.get('waitingScan'),
                 style: TextStyle(fontSize: 12, color: sc.textSecondary)),
             ]),
           ]),
@@ -192,10 +193,10 @@ class _SendScreenState extends State<SendScreen> {
         const SizedBox(height: 24),
 
         // Instructions
-        _Steps(steps: const [
-          ('📱', '在新手機開啟 Sanctum → 設定 → 換機轉移 → 新手機'),
-          ('📷', '點擊「掃描 QR 碼」，將鏡頭對準此 QR Code'),
-          ('✅', '新手機下載完成後，輸入相同主密鑰即可解鎖'),
+        _Steps(steps: [
+          ('📱', S.get('sendStep1')),
+          ('📷', S.get('sendStep2')),
+          ('✅', S.get('sendStep3')),
         ]),
 
         const SizedBox(height: 20),
@@ -203,7 +204,7 @@ class _SendScreenState extends State<SendScreen> {
         // Refresh button
         TextButton.icon(
           icon: Icon(Icons.refresh, size: 16, color: sc.textTertiary),
-          label: Text('重新生成', style: TextStyle(fontSize: 13, color: sc.textTertiary)),
+          label: Text(S.get('regenerate'), style: TextStyle(fontSize: 13, color: sc.textTertiary)),
           onPressed: _start,
         ),
       ]),
@@ -224,16 +225,16 @@ class _SendScreenState extends State<SendScreen> {
           child: const Icon(Icons.check_rounded, size: 36, color: SanctumTheme.green),
         ).animate().scale(duration: 400.ms, curve: Curves.elasticOut),
         const SizedBox(height: 20),
-        Text('傳送成功！', style: TextStyle(
+        Text(S.get('sendSuccess'), style: TextStyle(
           fontSize: 20, fontWeight: FontWeight.w600, color: sc.textPrimary)),
         const SizedBox(height: 8),
-        Text('新手機已接收所有資料\n請在新手機輸入相同主密鑰解鎖',
+        Text(S.get('sendSuccessMsg'),
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 13, color: sc.textSecondary, height: 1.6)),
         const SizedBox(height: 32),
         ElevatedButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('完成'),
+          child: Text(S.get('doneBtn')),
         ),
       ]),
     );
@@ -247,13 +248,13 @@ class _SendScreenState extends State<SendScreen> {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           const Icon(Icons.error_outline, size: 48, color: SanctumTheme.red),
           const SizedBox(height: 16),
-          Text(_error.isNotEmpty ? _error : '連接失敗',
+          Text(_error.isNotEmpty ? _error : S.get('connectFailed'),
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14, color: sc.textSecondary, height: 1.6)),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             icon: const Icon(Icons.refresh, size: 16),
-            label: const Text('重試'),
+            label: Text(S.get('retry')),
             onPressed: _start,
           ),
         ]),
@@ -279,7 +280,7 @@ class _Steps extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('操作步驟', style: TextStyle(
+          Text(S.get('operationSteps'), style: TextStyle(
             fontSize: 11, color: sc.textTertiary, letterSpacing: 0.5)),
           const SizedBox(height: 12),
           ...steps.map((s) => Padding(

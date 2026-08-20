@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../../../core/i18n/strings.dart';
 import '../../../shared/theme/app_theme.dart';
 import '../services/transfer_service.dart';
 
@@ -45,7 +46,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
 
     try {
       final d = TransferService.parseQr(raw);
-      if (d['m'] != 'w') throw Exception('不支援此 QR 類型');
+      if (d['m'] != 'w') throw Exception(S.get('qrTypeUnsupported'));
 
       final ip  = d['h'] as String;
       final pt  = d['p'] as int;
@@ -83,7 +84,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
           icon: Icon(Icons.arrow_back, color: sc.textSecondary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('新手機：接收資料',
+        title: Text(S.get('receiveDataTitle'),
             style: TextStyle(fontSize: 16, color: sc.textPrimary)),
       ),
       body: switch (_state) {
@@ -103,12 +104,12 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         color: SanctumTheme.amber.withValues(alpha: 0.1),
-        child: const Row(children: [
-          Icon(Icons.wifi, size: 13, color: SanctumTheme.amber),
-          SizedBox(width: 8),
+        child: Row(children: [
+          const Icon(Icons.wifi, size: 13, color: SanctumTheme.amber),
+          const SizedBox(width: 8),
           Expanded(child: Text(
-            '請確保已連接至與舊手機相同的 WiFi 網路',
-            style: TextStyle(fontSize: 11, color: SanctumTheme.amber),
+            S.get('sameWifiNote'),
+            style: const TextStyle(fontSize: 11, color: SanctumTheme.amber),
           )),
         ]),
       ),
@@ -141,15 +142,15 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
                   color: Colors.black.withValues(alpha: 0.55),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                  SizedBox(
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const SizedBox(
                     width: 10, height: 10,
                     child: CircularProgressIndicator(
                       color: Colors.white, strokeWidth: 1.5),
                   ),
-                  SizedBox(width: 8),
-                  Text('掃描 QR 碼中…',
-                    style: TextStyle(color: Colors.white, fontSize: 12)),
+                  const SizedBox(width: 8),
+                  Text(S.get('scanningQr'),
+                    style: const TextStyle(color: Colors.white, fontSize: 12)),
                 ]),
               ),
             ),
@@ -165,10 +166,10 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('將鏡頭對準舊手機上的 QR 碼',
+              Text(S.get('aimCamera'),
                 style: TextStyle(fontSize: 14, color: sc.textPrimary)),
               const SizedBox(height: 6),
-              Text('QR 碼有 5 分鐘效期，請盡快掃描',
+              Text(S.get('qrValidity'),
                 style: TextStyle(fontSize: 12, color: sc.textTertiary)),
             ],
           ),
@@ -197,7 +198,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
            .shimmer(duration: 1200.ms, color: SanctumTheme.blue.withValues(alpha: 0.3)),
 
           const SizedBox(height: 24),
-          Text('正在加密傳輸中…',
+          Text(S.get('encryptingTransfer'),
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,
                 color: sc.textPrimary)),
           const SizedBox(height: 24),
@@ -214,11 +215,11 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            _progress > 0 ? '$pct%' : '連接中…',
+            _progress > 0 ? '$pct%' : S.get('connecting'),
             style: TextStyle(fontSize: 12, color: sc.textTertiary),
           ),
           const SizedBox(height: 20),
-          Text('請勿離開此頁面',
+          Text(S.get('dontLeavePage'),
             style: TextStyle(fontSize: 11, color: sc.textTertiary)),
         ]),
       ),
@@ -242,11 +243,11 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
           ).animate().scale(duration: 400.ms, curve: Curves.elasticOut),
 
           const SizedBox(height: 20),
-          Text('接收成功！',
+          Text(S.get('receiveSuccess'),
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600,
                 color: sc.textPrimary)),
           const SizedBox(height: 8),
-          Text('資料已匯入本機\n請返回並用相同主密鑰解鎖金庫',
+          Text(S.get('receiveSuccessMsg'),
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: sc.textSecondary, height: 1.6)),
           const SizedBox(height: 32),
@@ -262,8 +263,8 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
               // Pop back to root so lock screen is shown
               Navigator.of(context).popUntil((r) => r.isFirst);
             },
-            child: const Text('前往解鎖金庫',
-              style: TextStyle(fontWeight: FontWeight.w600)),
+            child: Text(S.get('goUnlockVault'),
+              style: const TextStyle(fontWeight: FontWeight.w600)),
           ),
         ]),
       ),
@@ -278,13 +279,13 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           const Icon(Icons.error_outline, size: 48, color: SanctumTheme.red),
           const SizedBox(height: 16),
-          Text(_error.isNotEmpty ? _error : '接收失敗',
+          Text(_error.isNotEmpty ? _error : S.get('receiveFailed'),
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14, color: sc.textSecondary, height: 1.6)),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             icon: const Icon(Icons.qr_code_scanner, size: 16),
-            label: const Text('重新掃描'),
+            label: Text(S.get('rescan')),
             onPressed: _retry,
           ),
         ]),

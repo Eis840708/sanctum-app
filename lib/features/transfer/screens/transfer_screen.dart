@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../../core/i18n/strings.dart';
 import '../../../core/storage/vault_service.dart';
 import '../../../shared/theme/app_theme.dart';
 import 'send_screen.dart';
@@ -22,7 +23,7 @@ class TransferScreen extends StatelessWidget {
         ),
         title: ShaderMask(
           shaderCallback: (b) => SanctumDecor.goldGradient().createShader(b),
-          child: const Text('換機轉移', style: TextStyle(
+          child: Text(S.get('deviceTransfer'), style: const TextStyle(
             fontSize: 17, fontWeight: FontWeight.w600, color: Colors.white)),
         ),
       ),
@@ -42,9 +43,9 @@ class TransferScreen extends StatelessWidget {
               child: Row(children: [
                 const Icon(Icons.shield_outlined, size: 14, color: SanctumTheme.green),
                 const SizedBox(width: 8),
-                const Expanded(child: Text(
-                  '雙層加密傳輸  •  一次性密鑰  •  區域網路  •  5 分鐘自動過期',
-                  style: TextStyle(fontSize: 11, color: SanctumTheme.green, height: 1.4),
+                Expanded(child: Text(
+                  S.get('transferBadges'),
+                  style: const TextStyle(fontSize: 11, color: SanctumTheme.green, height: 1.4),
                 )),
               ]),
             ).animate().fadeIn(duration: 400.ms),
@@ -59,7 +60,7 @@ class TransferScreen extends StatelessWidget {
               const _V3TransferDisabledCard(),
               const SizedBox(height: 28),
             ] else ...[
-              Text('選擇角色', style: TextStyle(
+              Text(S.get('selectRole'), style: TextStyle(
                 fontSize: 11, color: sc.textTertiary, letterSpacing: 0.8)),
               const SizedBox(height: 12),
 
@@ -67,9 +68,9 @@ class TransferScreen extends StatelessWidget {
               _RoleCard(
                 icon: Icons.phone_android,
                 iconColor: SanctumTheme.gold,
-                title: '舊手機（傳送方）',
-                subtitle: '在舊手機操作，生成 QR 碼供新手機掃描',
-                steps: const ['開啟此頁面', '點擊「開始傳送」', '讓新手機掃描 QR 碼'],
+                title: S.get('oldPhoneSender'),
+                subtitle: S.get('oldPhoneSenderSub'),
+                steps: [S.get('stepOpenPage'), S.get('stepTapSend'), S.get('stepLetScan')],
                 onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const SendScreen())),
               ).animate().fadeIn(duration: 500.ms, delay: 100.ms).slideY(begin: 0.05),
@@ -80,9 +81,9 @@ class TransferScreen extends StatelessWidget {
               _RoleCard(
                 icon: Icons.phone_iphone,
                 iconColor: SanctumTheme.blue,
-                title: '新手機（接收方）',
-                subtitle: '在新手機操作，掃描舊手機的 QR 碼',
-                steps: const ['開啟此頁面', '點擊「掃描 QR 碼」', '等待資料匯入'],
+                title: S.get('newPhoneReceiver'),
+                subtitle: S.get('newPhoneReceiverSub'),
+                steps: [S.get('stepOpenPage'), S.get('stepTapScan'), S.get('stepWaitImport')],
                 onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const ReceiveScreen())),
               ).animate().fadeIn(duration: 500.ms, delay: 200.ms).slideY(begin: 0.05),
@@ -104,16 +105,16 @@ class TransferScreen extends StatelessWidget {
                   Row(children: [
                     Icon(Icons.info_outline, size: 14, color: sc.textTertiary),
                     const SizedBox(width: 6),
-                    Text('運作原理', style: TextStyle(
+                    Text(S.get('transferHow'), style: TextStyle(
                       fontSize: 12, color: sc.textTertiary, fontWeight: FontWeight.w600)),
                   ]),
                   const SizedBox(height: 12),
                   ...[
-                    ('🔑', '舊手機生成隨機一次性傳輸密鑰'),
-                    ('📡', '資料透過區域 WiFi 加密傳輸（不經互聯網）'),
-                    ('🔒', '資料雙層加密：傳輸密鑰 + 主密鑰'),
-                    ('⚡', '傳輸完成後自動銷毀密鑰'),
-                    ('🔐', '新手機使用相同主密鑰解鎖'),
+                    ('🔑', S.get('principle1')),
+                    ('📡', S.get('principle2')),
+                    ('🔒', S.get('principle3')),
+                    ('⚡', S.get('principle4')),
+                    ('🔐', S.get('principle5')),
                   ].map((item) => Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -124,12 +125,12 @@ class TransferScreen extends StatelessWidget {
                     ]),
                   )),
                   Divider(color: sc.border, height: 20),
-                  const Row(children: [
-                    Icon(Icons.wifi, size: 13, color: SanctumTheme.amber),
-                    SizedBox(width: 6),
+                  Row(children: [
+                    const Icon(Icons.wifi, size: 13, color: SanctumTheme.amber),
+                    const SizedBox(width: 6),
                     Expanded(child: Text(
-                      '兩部手機需連接同一 WiFi 網路（或舊手機開 WiFi 熱點，新手機連接）',
-                      style: TextStyle(fontSize: 11, color: SanctumTheme.amber, height: 1.4),
+                      S.get('wifiNote'),
+                      style: const TextStyle(fontSize: 11, color: SanctumTheme.amber, height: 1.4),
                     )),
                   ]),
                 ],
@@ -164,11 +165,11 @@ class _V3TransferDisabledCard extends StatelessWidget {
         Row(children: [
           const Icon(Icons.info_outline, size: 16, color: SanctumTheme.amber),
           const SizedBox(width: 8),
-          Expanded(child: Text('網路轉移暫不支援', style: TextStyle(
+          Expanded(child: Text(S.get('netTransferUnsupported'), style: TextStyle(
             fontSize: 14, fontWeight: FontWeight.w600, color: sc.textPrimary))),
         ]),
         const SizedBox(height: 8),
-        Text('v3 保險庫暫不支援網路轉移，請改用「備份／還原」（.vault 檔案）將資料轉移到新裝置。',
+        Text(S.get('netTransferV3Msg'),
           style: TextStyle(fontSize: 12, color: sc.textSecondary, height: 1.6)),
       ]),
     );
