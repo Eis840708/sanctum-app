@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import '../../../core/i18n/strings.dart';
 import '../../../core/storage/providers.dart';
 import '../../../core/storage/vault_service.dart';
 import '../../../shared/theme/app_theme.dart';
@@ -51,7 +52,7 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
       appBar: AppBar(
         backgroundColor: sc.bg,
         elevation: 0,
-        title: Text('匯入密碼', style: TextStyle(color: sc.textPrimary, fontSize: 17, fontWeight: FontWeight.w600)),
+        title: Text(S.get('importPwTitle'), style: TextStyle(color: sc.textPrimary, fontSize: 17, fontWeight: FontWeight.w600)),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: sc.textSecondary),
           onPressed: () => Navigator.of(context).pop(),
@@ -60,7 +61,7 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
           if (_entries.isNotEmpty && !_importing)
             TextButton(
               onPressed: _doImport,
-              child: const Text('匯入', style: TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w700, fontSize: 15)),
+              child: Text(S.get('importBtn'), style: const TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w700, fontSize: 15)),
             ),
         ],
       ),
@@ -83,17 +84,17 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
             border: Border.all(color: sc.border),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Row(children: [
-              Icon(Icons.info_outline, size: 15, color: SanctumTheme.gold),
-              SizedBox(width: 8),
-              Text('支援的格式', style: TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600, fontSize: 13)),
+            Row(children: [
+              const Icon(Icons.info_outline, size: 15, color: SanctumTheme.gold),
+              const SizedBox(width: 8),
+              Text(S.get('supportedFormats'), style: const TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600, fontSize: 13)),
             ]),
             const SizedBox(height: 10),
             ...[
-              ('Chrome', 'chrome://settings/passwords → 匯出'),
-              ('Bitwarden', '工具 → 匯出 → .csv'),
-              ('1Password', '檔案 → 匯出 → 1Password（CSV）'),
-              ('LastPass', '帳號設定 → 匯出'),
+              ('Chrome', S.get('exportChrome')),
+              ('Bitwarden', S.get('exportBitwarden')),
+              ('1Password', S.get('export1Password')),
+              ('LastPass', S.get('exportLastPass')),
             ].map((e) => Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child: Row(children: [
@@ -119,7 +120,7 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             icon: const Icon(Icons.upload_file_outlined, size: 18),
-            label: Text(_loading ? '讀取中…' : '選擇 CSV 檔案',
+            label: Text(_loading ? S.get('loading') : S.get('chooseCsvFile'),
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
           ),
         ),
@@ -144,11 +145,11 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
           Row(children: [
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(_fileName!, style: TextStyle(color: sc.textPrimary, fontSize: 13, fontWeight: FontWeight.w500)),
-              Text('${_formatLabel(_format)} · ${_entries.length} 個帳號', style: TextStyle(color: sc.textTertiary, fontSize: 12)),
+              Text('${_formatLabel(_format)} · ${S.get('accountsCount').replaceAll('{n}', '${_entries.length}')}', style: TextStyle(color: sc.textTertiary, fontSize: 12)),
             ])),
             TextButton(
               onPressed: _toggleAll,
-              child: Text(_entries.every((e) => e.selected) ? '取消全選' : '全選',
+              child: Text(_entries.every((e) => e.selected) ? S.get('deselectAll') : S.get('selectAll'),
                 style: const TextStyle(color: SanctumTheme.gold, fontSize: 13)),
             ),
           ]),
@@ -175,7 +176,7 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
                     side: BorderSide(color: sc.border),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                   ),
-                  title: Text(entry.site.isEmpty ? '（無網站）' : entry.site,
+                  title: Text(entry.site.isEmpty ? S.get('noSite') : entry.site,
                     style: TextStyle(color: sc.textPrimary, fontSize: 13, fontWeight: FontWeight.w500)),
                   subtitle: entry.username.isNotEmpty
                       ? Text(entry.username, style: TextStyle(color: sc.textTertiary, fontSize: 12))
@@ -205,7 +206,7 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
               ),
               child: _importing
                   ? SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: sc.bg))
-                  : Text('匯入 ${_entries.where((e) => e.selected).length} 個帳號',
+                  : Text(S.get('importNAccounts').replaceAll('{n}', '${_entries.where((e) => e.selected).length}'),
                       style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
             ),
           ),
@@ -223,13 +224,13 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
         child: const Icon(Icons.check, color: SanctumTheme.green, size: 36),
       ),
       const SizedBox(height: 20),
-      Text('匯入成功！', style: TextStyle(color: sc.textPrimary, fontSize: 20, fontWeight: FontWeight.w700)),
+      Text(S.get('importSuccess'), style: TextStyle(color: sc.textPrimary, fontSize: 20, fontWeight: FontWeight.w700)),
       const SizedBox(height: 8),
-      Text('已匯入 $_importedCount 個帳號', style: TextStyle(color: sc.textTertiary, fontSize: 14)),
+      Text(S.get('importedNAccounts').replaceAll('{n}', '$_importedCount'), style: TextStyle(color: sc.textTertiary, fontSize: 14)),
       const SizedBox(height: 32),
       TextButton(
         onPressed: () => Navigator.of(context).pop(true),
-        child: const Text('返回', style: TextStyle(color: SanctumTheme.gold, fontSize: 15)),
+        child: Text(S.back, style: const TextStyle(color: SanctumTheme.gold, fontSize: 15)),
       ),
     ]));
   }
@@ -240,7 +241,7 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
       case CsvFormat.bitwarden: return 'Bitwarden';
       case CsvFormat.onePassword: return '1Password';
       case CsvFormat.lastPass: return 'LastPass';
-      case CsvFormat.unknown: return '通用格式';
+      case CsvFormat.unknown: return S.get('genericFormat');
     }
   }
 
@@ -264,7 +265,7 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
       final file = result.files.first;
       final bytes = file.bytes ?? (file.path != null ? File(file.path!).readAsBytesSync() : null);
       if (bytes == null) {
-        setState(() { _loading = false; _error = '無法讀取檔案'; });
+        setState(() { _loading = false; _error = S.get('cannotReadFile'); });
         return;
       }
 
@@ -276,10 +277,10 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
         _fileName  = file.name;
         _entries   = parsed.$1;
         _format    = parsed.$2;
-        if (_entries.isEmpty) _error = '找不到有效的帳號資料';
+        if (_entries.isEmpty) _error = S.get('noValidAccounts');
       });
     } catch (e) {
-      setState(() { _loading = false; _error = '解析失敗：$e'; });
+      setState(() { _loading = false; _error = '${S.get('parseFailed')}：$e'; });
     } finally {
       ref.read(inactivityProvider.notifier).resetTimer();
     }
@@ -420,7 +421,7 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
 
     // Guard: vault may have been locked by inactivity timer while file picker was open
     if (!vaultService.isUnlocked) {
-      setState(() => _error = 'Vault 已鎖定，請返回並重新解鎖後再試');
+      setState(() => _error = S.get('vaultLockedMsg'));
       return;
     }
 
@@ -441,7 +442,7 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
         _importedCount = count;
       });
     } catch (e) {
-      final msg = e is StateError ? 'Vault 已鎖定，請返回並重新解鎖後再試' : '匯入失敗：$e';
+      final msg = e is StateError ? S.get('vaultLockedMsg') : '${S.get('importFailed')}：$e';
       setState(() {
         _importing = false;
         _error = msg;
