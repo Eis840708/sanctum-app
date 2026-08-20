@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
+import '../../../core/i18n/strings.dart';
 import '../../../core/models/models.dart';
 import '../../../core/storage/providers.dart';
 import '../../../shared/theme/app_theme.dart';
@@ -59,7 +60,7 @@ class _ReceiptPreviewScreenState extends ConsumerState<ReceiptPreviewScreen> {
       setState(() {
         _loading = false;
         if (result == null) {
-          _error = '無法識別內容，請手動輸入';
+          _error = S.get('ocrFailed');
         } else {
           _amountCtrl.text = result.amount.toStringAsFixed(2);
           _descCtrl.text   = result.description;
@@ -74,7 +75,7 @@ class _ReceiptPreviewScreenState extends ConsumerState<ReceiptPreviewScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = '識別失敗：$e';
+        _error = '${S.get('ocrError')}：$e';
       });
     }
   }
@@ -83,7 +84,7 @@ class _ReceiptPreviewScreenState extends ConsumerState<ReceiptPreviewScreen> {
     final amount = double.tryParse(_amountCtrl.text);
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('請輸入有效金額')),
+        SnackBar(content: Text(S.get('enterValidAmount'))),
       );
       return;
     }
@@ -113,7 +114,7 @@ class _ReceiptPreviewScreenState extends ConsumerState<ReceiptPreviewScreen> {
       appBar: AppBar(
         backgroundColor: sc.bg,
         elevation: 0,
-        title: Text('掃描帳單', style: TextStyle(color: sc.textPrimary, fontSize: 17, fontWeight: FontWeight.w600)),
+        title: Text(S.get('scanBill'), style: TextStyle(color: sc.textPrimary, fontSize: 17, fontWeight: FontWeight.w600)),
         leading: IconButton(
           icon: Icon(Icons.close, color: sc.textSecondary),
           onPressed: () => Navigator.of(context).pop(),
@@ -122,7 +123,7 @@ class _ReceiptPreviewScreenState extends ConsumerState<ReceiptPreviewScreen> {
           if (!_loading)
             TextButton(
               onPressed: _save,
-              child: const Text('儲存', style: TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600, fontSize: 15)),
+              child: Text(S.save, style: const TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600, fontSize: 15)),
             ),
         ],
       ),
@@ -130,7 +131,7 @@ class _ReceiptPreviewScreenState extends ConsumerState<ReceiptPreviewScreen> {
           ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
               const CircularProgressIndicator(color: SanctumTheme.gold),
               const SizedBox(height: 16),
-              Text('正在識別帳單…', style: TextStyle(color: sc.textTertiary, fontSize: 14)),
+              Text(S.get('recognizing'), style: TextStyle(color: sc.textTertiary, fontSize: 14)),
             ]))
           : _buildForm(),
     );
@@ -166,16 +167,16 @@ class _ReceiptPreviewScreenState extends ConsumerState<ReceiptPreviewScreen> {
 
         // Type toggle
         Row(children: [
-          _TypeBtn(label: '支出', active: _type == 'expense', color: SanctumTheme.red,   onTap: () => setState(() => _type = 'expense')),
+          _TypeBtn(label: S.expense, active: _type == 'expense', color: SanctumTheme.red,   onTap: () => setState(() => _type = 'expense')),
           const SizedBox(width: 8),
-          _TypeBtn(label: '收入', active: _type == 'income',  color: SanctumTheme.green, onTap: () => setState(() => _type = 'income')),
+          _TypeBtn(label: S.income, active: _type == 'income',  color: SanctumTheme.green, onTap: () => setState(() => _type = 'income')),
         ]),
         const SizedBox(height: 14),
 
         // Amount + Currency row
         Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('金額', style: TextStyle(fontSize: 12, color: sc.textTertiary)),
+            Text(S.amount, style: TextStyle(fontSize: 12, color: sc.textTertiary)),
             const SizedBox(height: 6),
             TextFormField(
               controller: _amountCtrl,
@@ -186,7 +187,7 @@ class _ReceiptPreviewScreenState extends ConsumerState<ReceiptPreviewScreen> {
           ])),
           const SizedBox(width: 12),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('幣種', style: TextStyle(fontSize: 12, color: sc.textTertiary)),
+            Text(S.get('currencyLabel'), style: TextStyle(fontSize: 12, color: sc.textTertiary)),
             const SizedBox(height: 6),
             DropdownButton<String>(
               value: _currencies.contains(_currency) ? _currency : 'MOP',
@@ -201,13 +202,13 @@ class _ReceiptPreviewScreenState extends ConsumerState<ReceiptPreviewScreen> {
         const SizedBox(height: 14),
 
         // Description
-        Text('描述', style: TextStyle(fontSize: 12, color: sc.textTertiary)),
+        Text(S.description, style: TextStyle(fontSize: 12, color: sc.textTertiary)),
         const SizedBox(height: 6),
         TextField(
           controller: _descCtrl,
           style: TextStyle(color: sc.textPrimary, fontSize: 15),
           decoration: InputDecoration(
-            hintText: '商戶 / 備注',
+            hintText: S.get('merchantNote'),
             hintStyle: TextStyle(color: sc.textTertiary, fontSize: 14),
             filled: true, fillColor: sc.bg2,
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -218,7 +219,7 @@ class _ReceiptPreviewScreenState extends ConsumerState<ReceiptPreviewScreen> {
         const SizedBox(height: 14),
 
         // Date
-        Text('日期', style: TextStyle(fontSize: 12, color: sc.textTertiary)),
+        Text(S.date, style: TextStyle(fontSize: 12, color: sc.textTertiary)),
         const SizedBox(height: 6),
         GestureDetector(
           onTap: () async {
@@ -243,14 +244,14 @@ class _ReceiptPreviewScreenState extends ConsumerState<ReceiptPreviewScreen> {
             child: Row(children: [
               Icon(Icons.calendar_today, size: 14, color: sc.textTertiary),
               const SizedBox(width: 8),
-              Text(DateFormat('yyyy年M月d日').format(_date), style: TextStyle(color: sc.textPrimary, fontSize: 14)),
+              Text(DateFormat(S.get('dateFmtFull')).format(_date), style: TextStyle(color: sc.textPrimary, fontSize: 14)),
             ]),
           ),
         ),
         const SizedBox(height: 14),
 
         // Category
-        Text('分類', style: TextStyle(fontSize: 12, color: sc.textTertiary)),
+        Text(S.category, style: TextStyle(fontSize: 12, color: sc.textTertiary)),
         const SizedBox(height: 8),
         _buildCategoryChips(),
         const SizedBox(height: 20),
@@ -270,7 +271,7 @@ class _ReceiptPreviewScreenState extends ConsumerState<ReceiptPreviewScreen> {
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('儲存記錄', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+            child: Text(S.get('saveRecord'), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
           ),
         ),
       ]),
@@ -302,21 +303,16 @@ class _ReceiptPreviewScreenState extends ConsumerState<ReceiptPreviewScreen> {
   }
 
   String _catLabel(String key) {
-    const labels = {
-      'cat_work': '工作',   'cat_freelance': '自由接案', 'cat_investment': '投資',
-      'cat_gift': '禮金',   'cat_housing': '住屋',       'cat_food': '飲食',
-      'cat_transport': '交通', 'cat_shopping': '購物',   'cat_health': '健康',
-      'cat_education': '教育', 'cat_entertainment': '娛樂', 'cat_gifts': '禮物',
-      'cat_other': '其他',
-    };
-    return labels[key] ?? key;
+    // Delegate to the i18n category labels (all languages, emoji-prefixed),
+    // consistent with the finance screen.
+    return S.catLabel(key);
   }
 
   Widget _buildLineItemsSection() {
     final sc = context.sc;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Text('細項', style: TextStyle(fontSize: 12, color: sc.textTertiary)),
+        Text(S.get('lineItem'), style: TextStyle(fontSize: 12, color: sc.textTertiary)),
         const Spacer(),
         GestureDetector(
           onTap: _addLineItem,
@@ -326,10 +322,10 @@ class _ReceiptPreviewScreenState extends ConsumerState<ReceiptPreviewScreen> {
               color: SanctumTheme.goldDim, borderRadius: BorderRadius.circular(6),
               border: Border.all(color: SanctumTheme.gold.withValues(alpha: 0.3)),
             ),
-            child: const Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.add, size: 13, color: SanctumTheme.gold),
-              SizedBox(width: 3),
-              Text('加細項', style: TextStyle(fontSize: 12, color: SanctumTheme.gold2)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.add, size: 13, color: SanctumTheme.gold),
+              const SizedBox(width: 3),
+              Text(S.get('addLineItem'), style: const TextStyle(fontSize: 12, color: SanctumTheme.gold2)),
             ]),
           ),
         ),
@@ -338,7 +334,7 @@ class _ReceiptPreviewScreenState extends ConsumerState<ReceiptPreviewScreen> {
       if (_lineItems.isEmpty)
         Padding(
           padding: const EdgeInsets.only(top: 8),
-          child: Text('（可選）掃描到的明細項目', style: TextStyle(fontSize: 12, color: sc.textTertiary.withValues(alpha: 0.6))),
+          child: Text(S.get('lineItemsOptional'), style: TextStyle(fontSize: 12, color: sc.textTertiary.withValues(alpha: 0.6))),
         )
       else ...[
         const SizedBox(height: 8),
@@ -377,7 +373,7 @@ class _ReceiptPreviewScreenState extends ConsumerState<ReceiptPreviewScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(children: [
-                Text('合計', style: TextStyle(color: sc.textTertiary, fontSize: 12)),
+                Text(S.get('total'), style: TextStyle(color: sc.textTertiary, fontSize: 12)),
                 const Spacer(),
                 Text(
                   NumberFormat('#,##0.##').format(_lineItems.fold(0.0, (s, i) => s + i.amount)),
@@ -403,27 +399,27 @@ class _ReceiptPreviewScreenState extends ConsumerState<ReceiptPreviewScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: sc.bg2,
-        title: Text(index == null ? '加細項' : '編輯細項',
+        title: Text(index == null ? S.get('addLineItem') : S.get('editLineItem'),
           style: TextStyle(color: sc.textPrimary, fontSize: 16)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           TextField(
             controller: nameCtrl,
             autofocus: true,
             style: TextStyle(color: sc.textPrimary, fontSize: 14),
-            decoration: _inputDecoration('名稱（例：飯、飲品）', sc),
+            decoration: _inputDecoration(S.get('itemNameHint'), sc),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: amountCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             style: TextStyle(color: sc.textPrimary, fontSize: 14),
-            decoration: _inputDecoration('金額', sc),
+            decoration: _inputDecoration(S.amount, sc),
           ),
         ]),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('取消', style: TextStyle(color: sc.textTertiary)),
+            child: Text(S.cancel, style: TextStyle(color: sc.textTertiary)),
           ),
           TextButton(
             onPressed: () {
@@ -439,7 +435,7 @@ class _ReceiptPreviewScreenState extends ConsumerState<ReceiptPreviewScreen> {
               });
               Navigator.pop(ctx);
             },
-            child: const Text('確定', style: TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600)),
+            child: Text(S.confirm, style: const TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
