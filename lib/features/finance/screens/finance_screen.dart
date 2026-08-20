@@ -89,7 +89,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Icon(Icons.document_scanner_outlined, size: 14, color: context.sc.textTertiary),
                       SizedBox(width: 4),
-                      Text('掃描', style: TextStyle(fontSize: 12, color: context.sc.textTertiary)),
+                      Text(S.get('scanBtn'), style: TextStyle(fontSize: 12, color: context.sc.textTertiary)),
                     ]),
                   ),
                 ),
@@ -186,7 +186,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
         SizedBox(height: 16),
         Container(width: 36, height: 4, decoration: BoxDecoration(color: context.sc.border2, borderRadius: BorderRadius.circular(2))),
         SizedBox(height: 16),
-        Text('匯入帳單', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: context.sc.textPrimary)),
+        Text(S.get('importBill'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: context.sc.textPrimary)),
         SizedBox(height: 16),
         ListTile(
           leading: Container(
@@ -194,8 +194,8 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
             decoration: BoxDecoration(color: SanctumTheme.goldDim, borderRadius: BorderRadius.circular(8)),
             child: Icon(Icons.camera_alt_outlined, color: SanctumTheme.gold, size: 18),
           ),
-          title: Text('拍攝帳單', style: TextStyle(color: context.sc.textPrimary, fontSize: 14)),
-          subtitle: Text('用相機拍下帳單或收據', style: TextStyle(color: context.sc.textTertiary, fontSize: 12)),
+          title: Text(S.get('takeBill'), style: TextStyle(color: context.sc.textPrimary, fontSize: 14)),
+          subtitle: Text(S.get('takeBillSub'), style: TextStyle(color: context.sc.textTertiary, fontSize: 12)),
           onTap: () async {
             Navigator.pop(ctx);
             final file = await ReceiptService.instance.pickFromCamera();
@@ -208,8 +208,8 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
             decoration: BoxDecoration(color: context.sc.bg3, borderRadius: BorderRadius.circular(8)),
             child: Icon(Icons.photo_library_outlined, color: context.sc.textSecondary, size: 18),
           ),
-          title: Text('從相簿選擇', style: TextStyle(color: context.sc.textPrimary, fontSize: 14)),
-          subtitle: Text('選擇截圖（銀行短訊、收據等）', style: TextStyle(color: context.sc.textTertiary, fontSize: 12)),
+          title: Text(S.get('fromGallery'), style: TextStyle(color: context.sc.textPrimary, fontSize: 14)),
+          subtitle: Text(S.get('chooseScreenshotSub'), style: TextStyle(color: context.sc.textTertiary, fontSize: 12)),
           onTap: () async {
             Navigator.pop(ctx);
             final file = await ReceiptService.instance.pickFromGallery();
@@ -489,7 +489,7 @@ class _FinanceFormState extends State<_FinanceForm> {
         autofocus: true,
       ),
       SizedBox(height: 12),
-      Text('幣別', style: TextStyle(fontSize: 12, color: context.sc.textTertiary)),
+      Text(S.get('currencyLabel'), style: TextStyle(fontSize: 12, color: context.sc.textTertiary)),
       const SizedBox(height: 6),
       Row(children: ['MOP', 'HKD', 'CNY', 'USD'].map((c) {
         final active = widget.currency == c;
@@ -547,7 +547,7 @@ class _FinanceFormState extends State<_FinanceForm> {
             border: Border.all(color: SanctumTheme.gold.withValues(alpha: 0.2)),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('自訂分類', style: TextStyle(fontSize: 12, color: SanctumTheme.gold, fontWeight: FontWeight.w500)),
+            Text(S.get('customCategory'), style: TextStyle(fontSize: 12, color: SanctumTheme.gold, fontWeight: FontWeight.w500)),
             SizedBox(height: 10),
             Row(children: [
               // Emoji field
@@ -578,7 +578,7 @@ class _FinanceFormState extends State<_FinanceForm> {
                 controller: _customLabelCtrl,
                 style: TextStyle(color: context.sc.textPrimary, fontSize: 14),
                 decoration: InputDecoration(
-                  hintText: '輸入分類名稱',
+                  hintText: S.get('enterCategoryName'),
                   hintStyle: TextStyle(color: context.sc.textTertiary, fontSize: 13),
                   filled: true,
                   fillColor: context.sc.bg2,
@@ -621,7 +621,7 @@ class _FinanceFormState extends State<_FinanceForm> {
       SizedBox(height: 12),
       SanctumField(label: S.description, hint: '', controller: widget.descCtrl),
       SizedBox(height: 12),
-      Text('日期', style: TextStyle(fontSize: 12, color: context.sc.textTertiary)),
+      Text(S.get('date'), style: TextStyle(fontSize: 12, color: context.sc.textTertiary)),
       const SizedBox(height: 6),
       GestureDetector(
         onTap: () async {
@@ -649,7 +649,7 @@ class _FinanceFormState extends State<_FinanceForm> {
           child: Row(children: [
             Icon(Icons.calendar_today, size: 14, color: context.sc.textTertiary),
             SizedBox(width: 8),
-            Text(DateFormat('yyyy年M月d日').format(widget.date),
+            Text(DateFormat(S.get('dateFmtFull')).format(widget.date),
               style: TextStyle(color: context.sc.textPrimary, fontSize: 14)),
             Spacer(),
             Icon(Icons.chevron_right, size: 16, color: context.sc.textTertiary),
@@ -731,7 +731,7 @@ class _FinanceCardState extends State<_FinanceCard> {
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: SanctumTheme.gold.withValues(alpha: 0.25)),
                     ),
-                    child: Text('${lineItems.length}項',
+                    child: Text(S.get('itemsCount').replaceAll('{n}', '${lineItems.length}'),
                       style: TextStyle(fontSize: 9, color: SanctumTheme.gold2, fontWeight: FontWeight.w600)),
                   ),
                 ],
@@ -842,9 +842,9 @@ class _DateFilterBar extends StatelessWidget {
 
   bool get _active => filterYear != null || customStart != null;
   String get _label {
-    if (customStart != null && customEnd != null) return DateFormat('M月d日').format(customStart!) + ' - ' + DateFormat('M月d日').format(customEnd!);
-    if (filterYear != null && filterMonth != null) return '$filterYear年$filterMonth月';
-    return '全部時間';
+    if (customStart != null && customEnd != null) return DateFormat(S.get('dateFmtMonthDay')).format(customStart!) + ' - ' + DateFormat(S.get('dateFmtMonthDay')).format(customEnd!);
+    if (filterYear != null && filterMonth != null) return S.get('yearMonth').replaceAll('{y}', '$filterYear').replaceAll('{m}', '$filterMonth');
+    return S.get('allTime');
   }
 
   void _pick(BuildContext ctx) {
@@ -853,13 +853,13 @@ class _DateFilterBar extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
         SizedBox(height: 12),
-        ListTile(leading: Icon(Icons.all_inclusive, color: SanctumTheme.gold, size: 18), title: Text('全部時間', style: TextStyle(color: ctx.sc.textPrimary, fontSize: 14)), onTap: () { Navigator.pop(ctx); onClear(); }),
+        ListTile(leading: Icon(Icons.all_inclusive, color: SanctumTheme.gold, size: 18), title: Text(S.get('allTime'), style: TextStyle(color: ctx.sc.textPrimary, fontSize: 14)), onTap: () { Navigator.pop(ctx); onClear(); }),
         Divider(color: ctx.sc.border, height: 1),
         SizedBox(height: 200, child: ListView.builder(itemCount: 24, itemBuilder: (_, i) {
           final d = DateTime(now.year, now.month - i);
           final sel = filterYear == d.year && filterMonth == d.month;
           return ListTile(
-            title: Text('${d.year}年${d.month}月', style: TextStyle(color: sel ? SanctumTheme.gold : ctx.sc.textPrimary, fontWeight: sel ? FontWeight.w600 : FontWeight.w400, fontSize: 14)),
+            title: Text(S.get('yearMonth').replaceAll('{y}', '${d.year}').replaceAll('{m}', '${d.month}'), style: TextStyle(color: sel ? SanctumTheme.gold : ctx.sc.textPrimary, fontWeight: sel ? FontWeight.w600 : FontWeight.w400, fontSize: 14)),
             trailing: sel ? Icon(Icons.check, color: SanctumTheme.gold, size: 16) : null,
             onTap: () { Navigator.pop(ctx); onMonthSelected(d.year, d.month); },
           );
@@ -867,7 +867,7 @@ class _DateFilterBar extends StatelessWidget {
         Divider(color: ctx.sc.border, height: 1),
         ListTile(
           leading: Icon(Icons.date_range, color: ctx.sc.textSecondary, size: 18),
-          title: Text('自訂日期區間', style: TextStyle(color: ctx.sc.textPrimary, fontSize: 14)),
+          title: Text(S.get('customDateRange'), style: TextStyle(color: ctx.sc.textPrimary, fontSize: 14)),
           onTap: () async {
             Navigator.pop(ctx);
             if (!ctx.mounted) return;
