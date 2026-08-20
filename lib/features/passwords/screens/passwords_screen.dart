@@ -97,7 +97,7 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
                             backgroundColor: sc.bg2,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             title: Text(S.get('deletePasswordTitle'), style: TextStyle(color: sc.textPrimary, fontWeight: FontWeight.w600)),
-                            content: Text('確定刪除「${items[i].site}」？\n刪除後可在提示中復原。',
+                            content: Text(S.get('deletePwConfirm').replaceAll('{site}', items[i].site),
                               style: TextStyle(color: sc.textSecondary, fontSize: 14)),
                             actions: [
                               TextButton(onPressed: () => Navigator.pop(ctx, false),
@@ -117,7 +117,7 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
                         ScaffoldMessenger.of(context)
                           ..hideCurrentSnackBar()
                           ..showSnackBar(SnackBar(
-                            content: Text('已刪除「$site」'),
+                            content: Text(S.get('deletedToast').replaceAll('{site}', site)),
                             duration: const Duration(seconds: 10),
                             backgroundColor: sc.bg2,
                             behavior: SnackBarBehavior.floating,
@@ -238,13 +238,13 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
                   color: sc.border2, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               Row(children: [
-                Text('編輯密碼', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600,
+                Text(S.get('editPassword'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600,
                     color: sc.textPrimary)),
                 const Spacer(),
                 // Delete button in edit sheet
                 TextButton.icon(
                   icon: const Icon(Icons.delete_outline, size: 16, color: SanctumTheme.red),
-                  label: const Text('刪除', style: TextStyle(fontSize: 13, color: SanctumTheme.red)),
+                  label: Text(S.delete, style: const TextStyle(fontSize: 13, color: SanctumTheme.red)),
                   onPressed: () async {
                     final confirmed = await showDialog<bool>(
                       context: ctx,
@@ -252,7 +252,7 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
                         backgroundColor: sc.bg2,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         title: Text(S.get('deletePasswordTitle'), style: TextStyle(color: sc.textPrimary, fontWeight: FontWeight.w600)),
-                        content: Text('確定刪除「${entry.site}」？\n刪除後可在提示中復原。',
+                        content: Text(S.get('deletePwConfirm').replaceAll('{site}', entry.site),
                           style: TextStyle(color: sc.textSecondary, fontSize: 14)),
                         actions: [
                           TextButton(onPressed: () => Navigator.pop(d, false),
@@ -270,7 +270,7 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
                     ScaffoldMessenger.of(context)
                       ..hideCurrentSnackBar()
                       ..showSnackBar(SnackBar(
-                        content: Text('已刪除「${entry.site}」'),
+                        content: Text(S.get('deletedToast').replaceAll('{site}', entry.site)),
                         duration: const Duration(seconds: 10),
                         backgroundColor: sc.bg2,
                         behavior: SnackBarBehavior.floating,
@@ -294,7 +294,7 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
                 Row(children: [
                   Text(S.password, style: TextStyle(fontSize: 12, color: sc.textTertiary)),
                   const SizedBox(width: 6),
-                  Text('（留空則不修改）', style: TextStyle(fontSize: 11, color: sc.textTertiary)),
+                  Text(S.get('leaveBlankHint'), style: TextStyle(fontSize: 11, color: sc.textTertiary)),
                 ]),
                 const SizedBox(height: 5),
                 _PwField(
@@ -414,7 +414,7 @@ class _PasswordCardState extends ConsumerState<_PasswordCard> {
       });
     }
 
-    final msg = isPassword ? '密碼已複製（$_kClipClearSecs 秒後自動清除）' : '${S.copied}';
+    final msg = isPassword ? S.get('pwCopiedClears').replaceAll('{n}', '$_kClipClearSecs') : S.copied;
     ScaffoldMessenger.of(ctx).clearSnackBars();
     ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
       content: Text(msg),
@@ -470,7 +470,7 @@ class _PasswordCardState extends ConsumerState<_PasswordCard> {
             ),
           ).animate().fadeIn(duration: 200.ms),
           const SizedBox(height: 2),
-          Text('剪貼簿將在 $_clipSecs 秒後清除',
+          Text(S.get('clipClearIn').replaceAll('{n}', '$_clipSecs'),
             style: TextStyle(fontSize: 10, color: SanctumTheme.amber)),
         ],
 
@@ -484,7 +484,7 @@ class _PasswordCardState extends ConsumerState<_PasswordCard> {
             if (context.mounted) _copy(context, pw, isPassword: true);
           }),
           const Spacer(),
-          _CardBtn(label: '編輯', onTap: widget.onEdit),
+          _CardBtn(label: S.edit, onTap: widget.onEdit),
         ]),
       ]),
     );
@@ -492,12 +492,12 @@ class _PasswordCardState extends ConsumerState<_PasswordCard> {
 
   String _relativeDate(DateTime dt) {
     final diff = DateTime.now().difference(dt).inDays;
-    if (diff == 0) return '今天';
-    if (diff == 1) return '昨天';
-    if (diff < 7)  return '$diff 天前';
-    if (diff < 30) return '${diff ~/ 7} 週前';
-    if (diff < 365) return '${diff ~/ 30} 個月前';
-    return '${diff ~/ 365} 年前';
+    if (diff == 0) return S.today;
+    if (diff == 1) return S.yesterday;
+    if (diff < 7)  return S.daysAgo(diff);
+    if (diff < 30) return S.weeksAgo(diff ~/ 7);
+    if (diff < 365) return S.monthsAgo(diff ~/ 30);
+    return S.yearsAgo(diff ~/ 365);
   }
 }
 
@@ -511,7 +511,7 @@ class _ExpiryBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final sc = context.sc;
     final color = state == _ExpiryState.expired ? SanctumTheme.red : SanctumTheme.amber;
-    final label = state == _ExpiryState.expired ? '已過期' : '建議更新';
+    final label = state == _ExpiryState.expired ? S.get('pwExpiredBadge') : S.get('pwWarnBadge');
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
