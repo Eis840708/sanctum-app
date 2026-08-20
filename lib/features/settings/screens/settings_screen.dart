@@ -97,7 +97,11 @@ class SettingsScreen extends ConsumerWidget {
                 );
               },
             ),
-            const _BiometricTile(),
+            // NOT const: a const child is canonicalised and skipped on parent
+            // rebuild, so its S.get(...) label would stay in the previous locale
+            // until toggled (W-C reactive-label fix). Rebuild it on lang change.
+            // ignore: prefer_const_constructors
+            _BiometricTile(),
           ]),
 
           const SizedBox(height: 20),

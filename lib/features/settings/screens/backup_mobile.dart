@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../core/i18n/strings.dart';
 
 class BackupHelper {
   static String? _lastFilePath;
@@ -47,12 +48,12 @@ class BackupHelper {
       withData: true,
     );
     if (result == null || result.files.isEmpty) {
-      throw Exception('未選擇檔案');
+      throw Exception(S.get('noFileSelected'));
     }
     final file  = result.files.first;
     final bytes = file.bytes ??
         (file.path != null ? await File(file.path!).readAsBytes() : null);
-    if (bytes == null) throw Exception('無法讀取檔案');
+    if (bytes == null) throw Exception(S.get('cannotReadFile'));
     return bytes;
   }
 
@@ -61,7 +62,7 @@ class BackupHelper {
     if (_lastFilePath == null) return;
     await Share.shareXFiles(
       [XFile(_lastFilePath!)],
-      text: 'Sanctum 加密保險庫備份',
+      text: S.get('backupShareText'),
       subject: 'Sanctum Vault Backup',
     );
   }
@@ -74,23 +75,23 @@ class BackupHelper {
       withData: true,
     );
     if (result == null || result.files.isEmpty) {
-      throw Exception('未選擇檔案');
+      throw Exception(S.get('noFileSelected'));
     }
 
     final file  = result.files.first;
     final bytes = file.bytes ??
         (file.path != null ? await File(file.path!).readAsBytes() : null);
-    if (bytes == null) throw Exception('無法讀取檔案');
+    if (bytes == null) throw Exception(S.get('cannotReadFile'));
 
     try {
       final json = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
       // Basic sanity check
       if (!json.containsKey('passwords') && !json.containsKey('diary')) {
-        throw Exception('檔案格式不正確，請選擇 .vault 備份檔案');
+        throw Exception(S.get('restoreBadFormat'));
       }
       return json;
     } catch (e) {
-      if (e is FormatException) throw Exception('檔案格式不正確：$e');
+      if (e is FormatException) throw Exception('${S.get("badFileFormat")}：$e');
       rethrow;
     }
   }

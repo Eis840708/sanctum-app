@@ -136,7 +136,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             Text(
               _loaded
                 ? '${S.searchResults} · $_total  (${S.passwords}: ${_filteredPw.length}  ${S.diary}: ${_filteredDiary.length}  ${S.finance}: ${_filteredFinance.length})'
-                : '載入中...',
+                : S.get('loading'),
               style: TextStyle(fontSize: 11, color: context.sc.textTertiary),
             ),
           ]),

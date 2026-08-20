@@ -180,7 +180,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
               Row(children: [
                 Expanded(child: _MethodBtn(label: S.get('randomKey'), sub: 'SK-XXXXXX-XXXXXX', icon: Icons.vpn_key, onTap: () => setState(() { _generatedKey = cryptoService.generateSecretKey(); _setupMethod = 1; _pw1.clear(); }))),
                 const SizedBox(width: 8),
-                Expanded(child: _MethodBtn(label: S.get('randomPhrase'), sub: '蘋果 火車 月亮…', icon: Icons.translate, onTap: () => setState(() { _generatedKey = cryptoService.generatePassphrase(); _setupMethod = 2; _pw1.clear(); }))),
+                Expanded(child: _MethodBtn(label: S.get('randomPhrase'), sub: S.get('phraseHintExample'), icon: Icons.translate, onTap: () => setState(() { _generatedKey = cryptoService.generatePassphrase(); _setupMethod = 2; _pw1.clear(); }))),
               ]),
               if (_generatedKey.isNotEmpty) ...[
                 const SizedBox(height: 12),
