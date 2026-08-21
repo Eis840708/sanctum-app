@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════
-// Sanctum i18n — 8 languages
+// Sanctum i18n — 10 languages / locales
 // ══════════════════════════════════════════════════════════
 
 class S {
@@ -13,6 +13,10 @@ class S {
       key;
 
   // Shorthand
+  /// Locale-aware colon: CJK full-width '：' (no trailing space) for
+  /// zh/ja; ASCII ': ' for en/ko and en-fallback locales (fr/de/es/la).
+  static String get colon => get('colon');
+  static String get okBtn => get('okBtn');
   static String get appName => get('appName');
   static String get tagline => get('tagline');
   static String get unlock => get('unlock');
@@ -491,6 +495,9 @@ const Map<String, Map<String, String>> _strings = {
     'recoverSetNewPw': '還原並設定新主密碼',
     'transferBadges': '雙層加密傳輸  •  一次性密鑰  •  區域網路  •  5 分鐘自動過期',
     'selectRole': '選擇角色',
+    'colon': '：',
+    'okBtn': '確定',
+    'backupSubject': 'Sanctum Vault 備份',
     'oldPhoneSender': '舊手機（傳送方）',
     'oldPhoneSenderSub': '在舊手機操作，生成 QR 碼供新手機掃描',
     'stepOpenPage': '開啟此頁面',
@@ -872,6 +879,9 @@ const Map<String, Map<String, String>> _strings = {
     'recoverSetNewPw': 'Restore and set new master password',
     'transferBadges': 'Two-layer encrypted transfer  •  one-time key  •  local network  •  auto-expires in 5 min',
     'selectRole': 'Choose a role',
+    'colon': ': ',
+    'okBtn': 'OK',
+    'backupSubject': 'Sanctum Vault Backup',
     'oldPhoneSender': 'Old phone (sender)',
     'oldPhoneSenderSub': 'On the old phone, generate a QR code for the new phone to scan',
     'stepOpenPage': 'Open this page',
@@ -1246,6 +1256,9 @@ const Map<String, Map<String, String>> _strings = {
     'recoverSetNewPw': '復元して新しいマスターパスワードを設定',
     'transferBadges': '二重暗号化転送  •  ワンタイム鍵  •  ローカルネットワーク  •  5分で自動失効',
     'selectRole': '役割を選択',
+    'colon': '：',
+    'okBtn': 'OK',
+    'backupSubject': 'Sanctum Vault バックアップ',
     'oldPhoneSender': '旧端末（送信側）',
     'oldPhoneSenderSub': '旧端末で操作し、新端末がスキャンするQRコードを生成',
     'stepOpenPage': 'このページを開く',
@@ -1620,6 +1633,9 @@ const Map<String, Map<String, String>> _strings = {
     'recoverSetNewPw': '복원하고 새 마스터 비밀번호 설정',
     'transferBadges': '2중 암호화 전송  •  일회용 키  •  로컬 네트워크  •  5분 후 자동 만료',
     'selectRole': '역할 선택',
+    'colon': ': ',
+    'okBtn': '확인',
+    'backupSubject': 'Sanctum Vault 백업',
     'oldPhoneSender': '기존 폰 (송신)',
     'oldPhoneSenderSub': '기존 폰에서 새 폰이 스캔할 QR 코드를 생성',
     'stepOpenPage': '이 페이지 열기',
@@ -2757,6 +2773,9 @@ const Map<String, Map<String, String>> _strings = {
     'recoverSetNewPw': '還原並設定新主密碼',
     'transferBadges': '雙層加密傳輸  •  一次性密鑰  •  區域網路  •  5 分鐘自動過期',
     'selectRole': '選擇角色',
+    'colon': '：',
+    'okBtn': '確定',
+    'backupSubject': 'Sanctum Vault 備份',
     'oldPhoneSender': '舊手機（傳送方）',
     'oldPhoneSenderSub': '在舊手機操作，生成 QR 碼供新手機掃描',
     'stepOpenPage': '開啟此頁面',
@@ -3131,6 +3150,9 @@ const Map<String, Map<String, String>> _strings = {
     'recoverSetNewPw': '恢复并设定新主密码',
     'transferBadges': '双层加密传输  •  一次性密钥  •  局域网  •  5 分钟自动过期',
     'selectRole': '选择角色',
+    'colon': '：',
+    'okBtn': '确定',
+    'backupSubject': 'Sanctum Vault 备份',
     'oldPhoneSender': '旧手机（发送方）',
     'oldPhoneSenderSub': '在旧手机操作，生成 QR 码供新手机扫描',
     'stepOpenPage': '打开此页面',

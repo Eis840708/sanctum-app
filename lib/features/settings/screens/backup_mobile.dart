@@ -63,7 +63,7 @@ class BackupHelper {
     await Share.shareXFiles(
       [XFile(_lastFilePath!)],
       text: S.get('backupShareText'),
-      subject: 'Sanctum Vault Backup',
+      subject: S.get('backupSubject'),
     );
   }
 
@@ -91,7 +91,7 @@ class BackupHelper {
       }
       return json;
     } catch (e) {
-      if (e is FormatException) throw Exception('${S.get("badFileFormat")}：$e');
+      if (e is FormatException) throw Exception('${S.get("badFileFormat")}${S.colon}$e');
       rethrow;
     }
   }

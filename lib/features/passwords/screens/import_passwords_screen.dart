@@ -100,7 +100,7 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
               child: Row(children: [
                 Container(width: 6, height: 6, margin: const EdgeInsets.only(right: 8, top: 1),
                   decoration: BoxDecoration(color: SanctumTheme.gold.withValues(alpha: 0.5), shape: BoxShape.circle)),
-                Text('${e.$1}：', style: TextStyle(color: sc.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
+                Text('${e.$1}${S.colon}', style: TextStyle(color: sc.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
                 Expanded(child: Text(e.$2, style: TextStyle(color: sc.textTertiary, fontSize: 12))),
               ]),
             )),
@@ -280,7 +280,7 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
         if (_entries.isEmpty) _error = S.get('noValidAccounts');
       });
     } catch (e) {
-      setState(() { _loading = false; _error = '${S.get('parseFailed')}：$e'; });
+      setState(() { _loading = false; _error = '${S.get('parseFailed')}${S.colon}$e'; });
     } finally {
       ref.read(inactivityProvider.notifier).resetTimer();
     }
@@ -442,7 +442,7 @@ class _ImportPasswordsScreenState extends ConsumerState<ImportPasswordsScreen> {
         _importedCount = count;
       });
     } catch (e) {
-      final msg = e is StateError ? S.get('vaultLockedMsg') : '${S.get('importFailed')}：$e';
+      final msg = e is StateError ? S.get('vaultLockedMsg') : '${S.get('importFailed')}${S.colon}$e';
       setState(() {
         _importing = false;
         _error = msg;

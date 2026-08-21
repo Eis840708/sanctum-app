@@ -92,6 +92,9 @@ class _LoadingScreen extends StatelessWidget {
 class LangSelector extends ConsumerWidget {
   const LangSelector({super.key});
 
+  // Alpha: only the 6 fully-translated locales are user-selectable.
+  // fr/de/es/la are hidden until their ~190 keys are populated (tracked
+  // debt); their maps still exist and back the en-fallback chain.
   static const _langs = [
     ('zh', '繁中(港)'),
     ('zh-TW', '繁中(台)'),
@@ -99,10 +102,6 @@ class LangSelector extends ConsumerWidget {
     ('en', 'EN'),
     ('ja', '日本語'),
     ('ko', '한국어'),
-    ('fr', 'FR'),
-    ('de', 'DE'),
-    ('es', 'ES'),
-    ('la', 'LAT'),
   ];
 
   static const _shortName = {

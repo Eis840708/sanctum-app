@@ -282,7 +282,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       }
       setState(() { _localDone = true; _backingUp = false; _lastBackup = date; });
     } catch (e) {
-      setState(() { _backingUp = false; _error = '${S.get('backupFailed')}：$e'; });
+      setState(() { _backingUp = false; _error = '${S.get('backupFailed')}${S.colon}$e'; });
     }
   }
 
@@ -291,7 +291,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       await BackupHelper.shareFile();
       setState(() => _cloudDone = true);
     } catch (e) {
-      setState(() => _error = '${S.get('shareFailed')}：$e');
+      setState(() => _error = '${S.get('shareFailed')}${S.colon}$e');
     }
   }
 
@@ -330,7 +330,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       }
     } catch (e) {
       // Reached only for v2 / file-read errors; v3 handles its own messaging.
-      if (mounted) setState(() => _error = '${S.get('restoreFailed')}：$e');
+      if (mounted) setState(() => _error = '${S.get('restoreFailed')}${S.colon}$e');
     } finally {
       if (mounted) setState(() => _restoring = false);
     }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/i18n/lang_provider.dart';
 import '../../../core/i18n/theme_provider.dart';
@@ -168,7 +169,7 @@ class SettingsScreen extends ConsumerWidget {
           _Section(title: S.about, rows: [
             _Row(icon: Icons.info_outline, iconColor: sc.textTertiary,
               label: S.version,
-              trailing: Text('Sanctum 1.5.0', style: TextStyle(fontSize: 12, color: sc.textTertiary))),
+              trailing: const _VersionText()),
             _Row(icon: Icons.cloud_off, iconColor: sc.textTertiary,
               label: S.storage,
               trailing: Text(S.localOnly, style: const TextStyle(fontSize: 12, color: SanctumTheme.green))),
@@ -210,7 +211,7 @@ class SettingsScreen extends ConsumerWidget {
         style: TextStyle(color: sc.textSecondary, fontSize: 13, height: 1.6)),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context),
-          child: const Text('OK', style: TextStyle(color: SanctumTheme.gold))),
+          child: Text(S.okBtn, style: const TextStyle(color: SanctumTheme.gold))),
       ],
     ));
   }
@@ -437,6 +438,29 @@ class _BiometricTileState extends State<_BiometricTile> {
         activeThumbColor: SanctumTheme.gold,
         onChanged: _busy ? null : _set,
       ),
+    );
+  }
+}
+
+/// About → version row. Reads the real app version from package_info at
+/// runtime (single source of truth = pubspec), so it never goes stale.
+/// Falls back to the pubspec version literal while loading / on platforms
+/// where PackageInfo is unavailable (e.g. widget tests).
+class _VersionText extends StatelessWidget {
+  const _VersionText();
+
+  static const _fallback = '1.6.0-alpha.1';
+
+  @override
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return FutureBuilder<PackageInfo>(
+      future: PackageInfo.fromPlatform(),
+      builder: (_, snap) {
+        final v = snap.data?.version ?? _fallback;
+        return Text('Sanctum $v',
+            style: TextStyle(fontSize: 12, color: sc.textTertiary));
+      },
     );
   }
 }

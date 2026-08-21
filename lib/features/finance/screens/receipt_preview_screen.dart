@@ -75,7 +75,7 @@ class _ReceiptPreviewScreenState extends ConsumerState<ReceiptPreviewScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = '${S.get('ocrError')}：$e';
+        _error = '${S.get('ocrError')}${S.colon}$e';
       });
     }
   }
