@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/i18n/lang_provider.dart';
+import '../../../core/i18n/strings.dart';
 import '../../../shared/theme/app_theme.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -16,54 +17,31 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
   final _pageCtrl = PageController();
   int _page = 0;
 
-  // Pages defined as functions so they react to lang changes
-  List<_Page> _buildPages(String lang) => [
+  // Pages built from central i18n (strings.dart). Rebuilt on lang change via
+  // ref.watch(langProvider); S.get reflects the current locale.
+  List<_Page> _buildPages() => [
     _Page(
       emoji: '🔐',
-      title:    _t(lang, zh: '歡迎使用 Sanctum',          en: 'Welcome to Sanctum',            ja: 'Sanctumへようこそ',        ko: 'Sanctum에 오신 것을 환영합니다'),
-      subtitle: _t(lang, zh: '你的私人加密金庫',            en: 'Your Private Encrypted Vault',  ja: 'プライベート暗号金庫',       ko: '개인 암호화 금고'),
-      body:     _t(lang,
-        zh: '保險庫記錄以 AES-256-GCM 加密，金鑰以 Argon2id 派生，\n完全離線儲存，不上傳任何雲端。\n你的資料只屬於你。',
-        en: 'Vault records are encrypted with AES-256-GCM (keys derived with Argon2id).\nStored fully offline — nothing sent to the cloud.\nYour data belongs only to you.',
-        ja: 'ボールト記録はAES-256-GCMで暗号化（鍵はArgon2idで導出）。\n完全オフライン保存、クラウド送信なし。\nあなたのデータはあなただけのもの。',
-        ko: '보관소 기록은 AES-256-GCM으로 암호화됩니다 (키는 Argon2id로 파생).\n완전 오프라인 저장 — 클라우드 전송 없음.\n당신의 데이터는 오직 당신의 것입니다.',
-      ),
+      title:    S.get('onbWelcomeTitle'),
+      subtitle: S.get('tagline'),
+      body:     S.get('onbWelcomeBody'),
     ),
     _Page(
       emoji: '🗝️',
-      title:    _t(lang, zh: '一個主密鑰，保護一切',          en: 'One Key. Everything Protected.',   ja: '1つの鍵ですべてを守る',          ko: '하나의 키로 모든 것을 보호'),
-      subtitle: _t(lang, zh: '密碼 · 日記 · 財務',           en: 'Passwords · Diary · Finance',      ja: 'パスワード・日記・財務',           ko: '비밀번호 · 일기 · 재정'),
-      body:     _t(lang,
-        zh: '用一個主密鑰解鎖整個金庫。\n內建密碼生成器，自動記錄財務，\n日記加密保存每個私密時刻。',
-        en: 'One master key unlocks your entire vault.\nBuilt-in password generator, finance tracker,\nand encrypted diary for your private moments.',
-        ja: '1つのマスターキーで金庫全体を解錠。\nパスワード生成器、家計簿、\n暗号化日記を内蔵。',
-        ko: '하나의 마스터 키로 전체 금고를 잠금 해제.\n비밀번호 생성기, 재정 추적기,\n개인 순간을 위한 암호화 일기 내장.',
-      ),
+      title:    S.get('onbKeyTitle'),
+      subtitle: S.get('onbKeySub'),
+      body:     S.get('onbKeyBody'),
     ),
     _Page(
       emoji: '📱',
-      title:    _t(lang, zh: '換機也不怕',                   en: 'Switch Phones Safely',             ja: '機種変更も安心',                  ko: '안전하게 폰 교체'),
-      subtitle: _t(lang, zh: '安全轉移 · 即將推出',           en: 'Secure Transfer · Coming Soon',    ja: '安全転送 · 近日公開',              ko: '안전 전송 · 출시 예정'),
-      body:     _t(lang,
-        zh: '未來將可透過 QR 碼 + WiFi 在兩部手機間\n加密傳輸資料，不經過任何伺服器。\n（安全裝置轉移功能即將推出）',
-        en: 'Soon you\'ll be able to move data between phones\nvia QR code + WiFi, encrypted, with no servers.\n(Secure device transfer — coming soon.)',
-        ja: '将来、QRコード+WiFiで2台のスマートフォン間で\nデータを暗号化して転送できます。サーバー不要。\n（安全なデバイス転送は近日公開）',
-        ko: '앞으로 QR 코드 + WiFi로 두 폰 간에\n데이터를 암호화하여 전송할 수 있습니다. 서버 없이.\n(안전한 기기 전송 — 출시 예정)',
-      ),
+      title:    S.get('onbTransferTitle'),
+      subtitle: S.get('onbTransferSub'),
+      body:     S.get('onbTransferBody'),
     ),
   ];
 
-  static String _t(String lang, {required String zh, required String en, required String ja, required String ko}) {
-    switch (lang) {
-      case 'ja': return ja;
-      case 'ko': return ko;
-      case 'en': case 'fr': case 'de': case 'es': case 'la': return en;
-      default:   return zh; // zh, zh-TW, zh-SC all use zh content for onboarding
-    }
-  }
-
   void _next() {
-    final pages = _buildPages(ref.read(langProvider));
+    final pages = _buildPages();
     if (_page < pages.length - 1) {
       _pageCtrl.nextPage(duration: const Duration(milliseconds: 350), curve: Curves.easeInOut);
     } else {
@@ -78,15 +56,12 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
   Widget build(BuildContext context) {
     final sc = context.sc;
     final lang  = ref.watch(langProvider);
-    final pages = _buildPages(lang);
+    final pages = _buildPages();
 
-    final btnLabel = _t(lang,
-      zh: _page == pages.length - 1 ? '開始設置金庫' : '下一步',
-      en: _page == pages.length - 1 ? 'Get Started' : 'Next',
-      ja: _page == pages.length - 1 ? '始める' : '次へ',
-      ko: _page == pages.length - 1 ? '시작하기' : '다음',
-    );
-    final skipLabel = _t(lang, zh: '跳過', en: 'Skip', ja: 'スキップ', ko: '건너뛰기');
+    final btnLabel = _page == pages.length - 1
+        ? S.get('onbGetStarted')
+        : S.get('onbNext');
+    final skipLabel = S.get('onbSkip');
 
     return Scaffold(
       backgroundColor: sc.bg,
@@ -162,10 +137,11 @@ class _LangPicker extends StatelessWidget {
   final ValueChanged<String> onSelect;
   const _LangPicker({required this.current, required this.onSelect});
 
+  // Alpha: only the 6 fully-translated locales are selectable, matching the
+  // main app's LangSelector. fr/de/es/la are hidden until their keys are filled.
   static const _langs = [
     ('zh', '繁中(港)'), ('zh-TW', '繁中(台)'), ('zh-SC', '简体中文'),
     ('en', 'EN'), ('ja', '日本語'), ('ko', '한국어'),
-    ('fr', 'FR'), ('de', 'DE'), ('es', 'ES'),
   ];
 
   @override
