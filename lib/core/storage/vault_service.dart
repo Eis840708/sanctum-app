@@ -953,9 +953,15 @@ class VaultService {
 
   Future<bool> unlockWithBiometric() async {
     final auth = LocalAuthentication();
+    // biometricOnly: true — do NOT allow the device-credential (pattern/PIN)
+    // fallback. That fallback authenticates the DEVICE, not the vault: it would
+    // return ok=true while the vault's biometric key may be absent, then throw
+    // biometric_key_missing and bounce the user back to the lock screen. With
+    // biometric-only, a failed/absent biometric simply returns false and the UI
+    // guides the user to the master password.
     final ok = await auth.authenticate(
       localizedReason: S.get('bioReason'),
-      options: const AuthenticationOptions(biometricOnly: false),
+      options: const AuthenticationOptions(biometricOnly: true),
     );
     if (!ok) return false;
     final encoded = await _secureStorage.read(key: _biometricKey);

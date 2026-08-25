@@ -29,9 +29,14 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   bool _biometricAvailable = false;
 
   Future<void> _checkBiometric() async {
+    // Show the biometric button only when THIS vault has actually enabled
+    // biometric unlock — not merely when the device has biometric hardware.
+    // Gating on hardware alone showed the button on vaults that never enrolled;
+    // tapping it always failed and bounced the user back to the lock screen.
+    final enabled = await vaultService.hasBiometricEnabled();
     final hasHardware = await vaultService.canUseBiometric();
     if (mounted) {
-      setState(() => _biometricAvailable = hasHardware);
+      setState(() => _biometricAvailable = enabled && hasHardware);
     }
   }
 
