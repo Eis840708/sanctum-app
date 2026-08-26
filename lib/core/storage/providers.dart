@@ -30,6 +30,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> unlockWithBiometric() async {
     state = AuthState.loading;
     try {
+      // Version-aware routing. A v3 vault uses the V-05 native, crypto-bound,
+      // biometric-only path (KeyStore + CryptoObject) — no device-credential
+      // fallback; it is fail-closed and throws when the biometric wrap is
+      // absent or native auth fails, so the caller guides the user to the
+      // master password. A v2 vault uses the legacy local_auth path.
+      if (vaultService.isV3Vault) {
+        await vaultService.unlockV3WithBiometric();
+        state = AuthState.unlocked;
+        return true;
+      }
       final ok = await vaultService.unlockWithBiometric();
       state = ok ? AuthState.unlocked : AuthState.locked;
       return ok;

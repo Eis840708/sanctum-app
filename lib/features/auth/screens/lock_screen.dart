@@ -33,7 +33,11 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     // biometric unlock — not merely when the device has biometric hardware.
     // Gating on hardware alone showed the button on vaults that never enrolled;
     // tapping it always failed and bounced the user back to the lock screen.
-    final enabled = await vaultService.hasBiometricEnabled();
+    // Version-aware: a v3 vault's "enabled" state is the native hw-bio wrap
+    // (V-05); a v2 vault's is the legacy secure-storage key.
+    final enabled = vaultService.isV3Vault
+        ? await vaultService.hasV3Biometric
+        : await vaultService.hasBiometricEnabled();
     final hasHardware = await vaultService.canUseBiometric();
     if (mounted) {
       setState(() => _biometricAvailable = enabled && hasHardware);
