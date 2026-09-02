@@ -65,6 +65,11 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  # Test-only: fake the local_auth platform so widget tests can drive the lock
+  # screen's biometric button (canUseBiometric() true) without a device.
+  # Pinned to the versions local_auth ^2.1.8 already resolves (transitive).
+  local_auth_platform_interface: 1.1.0
+  plugin_platform_interface: ^2.1.8
   hive_generator: ^2.0.1
   build_runner: ^2.4.8
   riverpod_generator: ^2.3.9

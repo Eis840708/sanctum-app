@@ -10,6 +10,8 @@ import 'backup_screen.dart';
 import 'shamir_screen.dart';
 import '../../transfer/screens/transfer_screen.dart';
 import '../../../core/storage/vault_service.dart';
+import '../../../core/crypto/v3/vault_v3_keys.dart' show VaultV3KeyException;
+import '../../../core/crypto/v3/vault_v3_biometric.dart' show VaultV3BiometricException;
 import '../../passwords/screens/import_passwords_screen.dart';
 import '../../../main.dart' show LangSelector;
 
@@ -404,13 +406,26 @@ class _BiometricTileState extends State<_BiometricTile> {
 
   Future<void> _load() async {
     final supported = await vaultService.canUseBiometric();
-    final enabled = await vaultService.hasBiometricEnabled();
+    // Version-aware "enabled": a v3 vault's state is the native hw-bio wrap
+    // (V-05); a v2 vault's is the legacy secure-storage key.
+    final enabled = vaultService.isV3Vault
+        ? await vaultService.hasV3Biometric
+        : await vaultService.hasBiometricEnabled();
     if (!mounted) return;
     setState(() { _supported = supported; _enabled = enabled; _loaded = true; });
   }
 
   Future<void> _set(bool on) async {
     if (_busy) return;
+    if (vaultService.isV3Vault) {
+      await _setV3(on);
+    } else {
+      await _setV2(on);
+    }
+  }
+
+  // v2 (legacy): the session key is wrapped into secure storage directly.
+  Future<void> _setV2(bool on) async {
     setState(() => _busy = true);
     try {
       if (on) {
@@ -426,6 +441,50 @@ class _BiometricTileState extends State<_BiometricTile> {
     }
   }
 
+  // v3 (V-05): enabling enrolls the DEK under a hardware, biometric-gated
+  // KeyStore key (native CryptoObject). enrolling re-derives the DEK from the
+  // master password (the in-memory session holds only a subkey), so we prompt
+  // for it once. Fail-closed: a wrong password or a device that cannot provide
+  // a hardware biometric wrap leaves biometric OFF.
+  Future<void> _setV3(bool on) async {
+    if (!on) {
+      setState(() => _busy = true);
+      try {
+        await vaultService.disableV3Biometric();
+        if (mounted) setState(() => _enabled = false);
+      } catch (_) {
+        // leave unchanged
+      } finally {
+        if (mounted) setState(() => _busy = false);
+      }
+      return;
+    }
+    final pw = await showDialog<String>(
+      context: context,
+      builder: (_) => const _BioPasswordDialog(),
+    );
+    if (pw == null || pw.isEmpty) return; // cancelled — toggle stays off
+    if (!mounted) return;
+    setState(() => _busy = true);
+    try {
+      await vaultService.enableV3Biometric(pw);
+      if (mounted) setState(() => _enabled = true);
+    } on VaultV3KeyException {
+      if (mounted) _toast(S.get('wrongPassword'));
+    } on VaultV3BiometricException {
+      if (mounted) _toast(S.get('bioEnableFailed'));
+    } catch (_) {
+      if (mounted) _toast(S.get('bioEnableFailed'));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _toast(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_loaded || !_supported) return const SizedBox.shrink();
@@ -438,6 +497,67 @@ class _BiometricTileState extends State<_BiometricTile> {
         activeThumbColor: SanctumTheme.gold,
         onChanged: _busy ? null : _set,
       ),
+    );
+  }
+}
+
+/// Master-password prompt shown when enabling v3 biometric unlock. The password
+/// is used only to re-derive the DEK for the native enroll and is never stored
+/// (B3-b): no autofill/suggestions, the controller is owned + disposed here, and
+/// the value never enters app state/provider.
+class _BioPasswordDialog extends StatefulWidget {
+  const _BioPasswordDialog();
+  @override
+  State<_BioPasswordDialog> createState() => _BioPasswordDialogState();
+}
+
+class _BioPasswordDialogState extends State<_BioPasswordDialog> {
+  final _ctrl = TextEditingController();
+  bool _obscure = true;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sc = context.sc;
+    return AlertDialog(
+      backgroundColor: sc.bg2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text(S.get('bioEnableTitle'),
+          style: TextStyle(color: sc.textPrimary, fontWeight: FontWeight.w600)),
+      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(S.get('bioEnablePrompt'),
+            style: TextStyle(color: sc.textSecondary, fontSize: 13, height: 1.5)),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _ctrl,
+          obscureText: _obscure,
+          autofocus: true,
+          enableSuggestions: false,
+          autocorrect: false,
+          style: TextStyle(color: sc.textPrimary),
+          decoration: InputDecoration(
+            hintText: S.masterPassword,
+            filled: true, fillColor: sc.bg3,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            suffixIcon: IconButton(
+              icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off, size: 18, color: sc.textTertiary),
+              onPressed: () => setState(() => _obscure = !_obscure),
+            ),
+          ),
+          onSubmitted: (_) => Navigator.pop(context, _ctrl.text),
+        ),
+      ]),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context, null),
+            child: Text(S.cancel, style: TextStyle(color: sc.textSecondary))),
+        TextButton(onPressed: () => Navigator.pop(context, _ctrl.text),
+            child: Text(S.get('confirm'), style: const TextStyle(color: SanctumTheme.gold, fontWeight: FontWeight.w600))),
+      ],
     );
   }
 }
