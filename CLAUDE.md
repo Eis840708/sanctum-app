@@ -57,7 +57,7 @@ Flutter / Riverpod / Hive / go_router，版本 `1.5.0+6`。階段：功能原型
 - **禁區**：`git reset --hard`／`checkout --`／`clean` 全程禁；核心三檔非經批次授權不得改；工作樹既有使用者修改不得損。
 - **B2 analyze 驗收基線**（排除 vendored 後量測）：error 0 絕對／warning ≤2（pre-existing，B2 不處理）／info ≤162／**新增檔本身 0 issue**。
 - **禁真實 Vault**：全部測試用合成資料。
-- **release gate**：「AES-256 全加密」＝全記錄加密＋Argon2id 完成並驗收前，不上線、不對外宣稱；實體 ARM API24 Argon2id 量測上線前必辦；Argon2id 安全下限 19MiB/t2/p1 不得突破。
+- **release gate**：「AES-256 全加密」＝全記錄加密（B2-5b✓）＋Argon2id 驗收（**TDR-2026-026 已解，Redmi proxy 基準，2026-08-15**）；**兩道硬性 prong 齊 → 對外宣稱閘硬性條件解除**（TDR-2026-019 裁定；打磨式公開行銷仍建議待第三方審核）；真 API24 複驗降 optional；Argon2id 安全下限 19MiB/t2/p1 不得突破。
 - 對外宣稱暫停中（2-Layer Backup／安全還原／安全裝置轉移／AES-256 全加密）；項目目前無任何對外宣稱（修正階段）。
 - vendored `unorm_dart` 0.3.2 版本凍結，升級須總監批准（視為 KDF 相容性變更）。
 
@@ -72,12 +72,13 @@ Flutter / Riverpod / Hive / go_router，版本 `1.5.0+6`。階段：功能原型
 
 - `passwords_screen.dart` 2 warning（`unused_local_variable`／`unnecessary_cast`，使用者修改檔，B2 完成後另立小任務）。
 - 測試覆蓋不足（B2 各批順帶償還）。
+- `createVault` 防禦性清 `*__v3`：裁低優先（production 已安全，B2-5a-native RETURN③ 收官時定級）。
 - ~~`withOpacity` deprecated~~：**已清（2026-07-22 實測 lib/ 內 0 個）**。
 
 ## crypto（B2）之後嘅緊急事項
 
 > 詳見 `story book\DEV-P0-03-post-crypto-priorities-v1.md`。三大樽頸：
-> ① 實體 ARM API24 Argon2id 量測（release gate，需 Eis 提供實體機）；② CI 自動化（現時完全冇 `.github/workflows`）；③ 簽名改 CI secret 供應（現時本機 `android/app/release.jks`）。
+> ① 實體 ARM API24 Argon2id 量測（release gate；**✅ Redmi proxy 基準驗收通過＝TDR-2026-026 已解**，Eis 2026-08-15 授權接受，`TDR-2026-026-proxy-acceptance-signoff-director-v1`；真 API24 複驗降 optional 非阻塞）；**② CI 自動化 ✅ 已收官（2026-08-15）**——Private repo `Eis840708/sanctum-app`、`.github/workflows/ci.yml` 於 `feat/vault-v3` push 綠跑（run 31865111884，`actions/checkout@v5`、Node20 警告已消）；③ 簽名改 CI secret 供應（**仍待**；現時本機 `android/app/release.jks`）。
 > 之後：B2-5 全加密收尾（解 release gate）→ Internal Alpha → UX 大改（P2）→ iOS 平台驗證 → 獨立第三方安全審核 → 私隱政策／商店素材。
 
 ## 常用指令
