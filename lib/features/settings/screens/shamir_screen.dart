@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/crypto/shamir_service.dart';
 import '../../../core/i18n/strings.dart';
+import '../../../core/security/sensitive_clipboard.dart';
 import '../../../core/storage/providers.dart';
 import '../../../core/storage/vault_service.dart';
 import '../../../shared/theme/app_theme.dart';
@@ -82,7 +83,7 @@ class _GenerateTabState extends State<_GenerateTab> {
 
   void _reset() => setState(() { _shareCodes = null; _pwCtrl.clear(); });
   void _snack(String m) { if (!mounted) return; ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m), backgroundColor: context.sc.bg3, behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2))); }
-  void _copy(String t) { Clipboard.setData(ClipboardData(text: t)); _snack(S.copied); }
+  void _copy(String t) { SensitiveClipboard.instance.copy(t); _snack(S.copied); }
 
   void _exportOne(int i) {
     if (_shareCodes == null) return;
@@ -256,7 +257,7 @@ class _RecoverTabState extends State<_RecoverTab> {
               Row(children: [
                 Expanded(child: Text(_showResult ? _recovered! : '•' * _recovered!.length.clamp(8, 20), style: TextStyle(fontSize: 14, color: sc.textPrimary, fontFamily: 'monospace'))),
                 IconButton(icon: Icon(_showResult ? Icons.visibility_off : Icons.visibility, size: 18, color: sc.textTertiary), onPressed: () => setState(() => _showResult = !_showResult)),
-                IconButton(icon: const Icon(Icons.copy, size: 18, color: SanctumTheme.gold), onPressed: () { Clipboard.setData(ClipboardData(text: _recovered!)); _snack(S.get('copiedMasterPw')); }),
+                IconButton(icon: const Icon(Icons.copy, size: 18, color: SanctumTheme.gold), onPressed: () { SensitiveClipboard.instance.copy(_recovered!); _snack(S.get('copiedMasterPw')); }),
               ]),
               const SizedBox(height: 8),
               Text(S.get('copyPwWarn'), style: TextStyle(fontSize: 11, color: sc.textTertiary)),
@@ -307,7 +308,7 @@ class _V3GenerateTabState extends State<_V3GenerateTab> {
 
   void _reset() => setState(() { _shareCodes = null; _pwCtrl.clear(); _error = null; });
   void _snack(String m) { if (!mounted) return; ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m), backgroundColor: context.sc.bg3, behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2))); }
-  void _copy(String t) { Clipboard.setData(ClipboardData(text: t)); _snack(S.copied); }
+  void _copy(String t) { SensitiveClipboard.instance.copy(t); _snack(S.copied); }
 
   // V-07: per-share export only — one share, one destination. No aggregate action.
   void _exportOne(int i) {

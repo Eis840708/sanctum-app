@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../security/sensitive_clipboard.dart';
 import '../storage/vault_service.dart';
 import '../models/models.dart';
 
@@ -23,6 +24,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   void lock() {
+    // Wipe any sensitive value still on the clipboard when the vault locks
+    // (auto-lock timeout or manual lock) — RT-C-01/02/03.
+    unawaited(SensitiveClipboard.instance.clearNow());
     vaultService.lock();
     state = AuthState.locked;
   }

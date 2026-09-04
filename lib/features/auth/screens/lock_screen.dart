@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/i18n/strings.dart';
@@ -7,6 +6,7 @@ import '../../../core/i18n/lang_provider.dart';
 import '../../../core/storage/providers.dart';
 import '../../../core/storage/vault_service.dart';
 import '../../../core/crypto/crypto_service.dart';
+import '../../../core/security/sensitive_clipboard.dart';
 import '../../../shared/theme/app_theme.dart';
 import 'onboarding_screen.dart';
 
@@ -198,7 +198,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                     const Icon(Icons.key, color: SanctumTheme.gold, size: 14), const SizedBox(width: 6),
                     Text(_setupMethod == 1 ? S.get('yourKey') : S.get('yourPhrase'), style: const TextStyle(fontSize: 11, color: SanctumTheme.gold)),
                     const Spacer(),
-                    GestureDetector(onTap: () { Clipboard.setData(ClipboardData(text: _generatedKey)); }, child: Icon(Icons.copy, color: sc.textTertiary, size: 14)),
+                    GestureDetector(onTap: () { SensitiveClipboard.instance.copy(_generatedKey); }, child: Icon(Icons.copy, color: sc.textTertiary, size: 14)),
                     const SizedBox(width: 8),
                     GestureDetector(onTap: () => setState(() { _generatedKey = _setupMethod == 1 ? cryptoService.generateSecretKey() : cryptoService.generatePassphrase(); _pw1.clear(); }), child: Icon(Icons.refresh, color: sc.textTertiary, size: 14)),
                   ]),

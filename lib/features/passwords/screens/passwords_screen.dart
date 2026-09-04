@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/i18n/lang_provider.dart';
 import '../../../core/models/models.dart';
+import '../../../core/security/sensitive_clipboard.dart';
 import '../../../core/storage/providers.dart';
 import '../../../core/storage/vault_service.dart';
 import '../../../core/crypto/crypto_service.dart';
@@ -399,19 +400,21 @@ class _PasswordCardState extends ConsumerState<_PasswordCard> {
   }
 
   void _copy(BuildContext ctx, String text, {bool isPassword = false}) {
-    Clipboard.setData(ClipboardData(text: text));
-
     if (isPassword) {
+      // The auto-clear now lives in SensitiveClipboard: it survives this card's
+      // dispose (leaving the page), a vault lock, and app-background — the local
+      // timer below is only the cosmetic countdown bar (RT-C-02/03).
+      SensitiveClipboard.instance.copy(text);
       _clipTimer?.cancel();
       setState(() => _clipSecs = _kClipClearSecs);
       _clipTimer = Timer.periodic(const Duration(seconds: 1), (t) {
         if (!mounted) { t.cancel(); return; }
         setState(() => _clipSecs--);
-        if (_clipSecs <= 0) {
-          t.cancel();
-          Clipboard.setData(const ClipboardData(text: ''));
-        }
+        if (_clipSecs <= 0) t.cancel();
       });
+    } else {
+      // Non-sensitive (site / username) — a plain copy, no auto-clear.
+      Clipboard.setData(ClipboardData(text: text));
     }
 
     final msg = isPassword ? S.get('pwCopiedClears').replaceAll('{n}', '$_kClipClearSecs') : S.copied;

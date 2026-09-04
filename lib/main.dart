@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/i18n/strings.dart';
 import 'core/i18n/lang_provider.dart';
 import 'core/i18n/theme_provider.dart';
+import 'core/security/sensitive_clipboard.dart';
 import 'core/storage/providers.dart';
 import 'core/storage/vault_service.dart';
 import 'features/auth/screens/lock_screen.dart';
@@ -18,8 +19,21 @@ import 'features/settings/screens/settings_screen.dart';
 import 'features/search/search_screen.dart';
 import 'shared/theme/app_theme.dart';
 
+/// Wipes any sensitive value left on the clipboard when the app leaves the
+/// foreground (RT-C-01/02/03) — independent of any screen's lifecycle.
+class _ClipboardLifecycleObserver with WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      SensitiveClipboard.instance.clearNow();
+    }
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding.instance.addObserver(_ClipboardLifecycleObserver());
   await vaultService.init();
   final savedLang = await LangNotifier.loadSaved();
   final savedTheme = await ThemeNotifier.loadSaved();

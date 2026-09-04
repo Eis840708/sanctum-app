@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/i18n/strings.dart';
+import '../../../core/security/sensitive_clipboard.dart';
 import '../../../core/i18n/lang_provider.dart';
 import '../../../core/models/models.dart';
 import '../../../core/storage/vault_service.dart';
@@ -231,7 +231,7 @@ class _PwResult extends StatelessWidget {
       GestureDetector(
         onTap: () async {
           final pw = await vaultService.decryptPassword(entry);
-          await Clipboard.setData(ClipboardData(text: pw));
+          await SensitiveClipboard.instance.copy(pw);
           if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(S.copied), backgroundColor: context.sc.bg3,
               behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2)));

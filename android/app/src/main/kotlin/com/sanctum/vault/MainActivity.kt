@@ -1,8 +1,14 @@
 package com.sanctum.vault
 
+import android.content.ClipData
+import android.content.ClipDescription
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.PersistableBundle
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -13,6 +19,7 @@ class MainActivity : FlutterFragmentActivity() {
     private val ownerId = UUID.randomUUID().toString()
     private var shareChannel: MethodChannel? = null
     private var keyAuthChannel: MethodChannel? = null
+    private var clipboardChannel: MethodChannel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         SharedImageRuntime.initialize(applicationContext)
@@ -53,6 +60,37 @@ class MainActivity : FlutterFragmentActivity() {
         keyAuthChannel = MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger, KeyAuthChannel.CHANNEL
         ).also { it.setMethodCallHandler(KeyAuthChannel(this)) }
+
+        // Sensitive clipboard (red-team RT-C-01/02/03): copy secrets with the
+        // Android EXTRA_IS_SENSITIVE flag so they stay out of clipboard history
+        // and on-screen previews. Dart owns the auto-clear timer.
+        clipboardChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger, CLIPBOARD_CHANNEL
+        ).also {
+            it.setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "copySensitive" -> {
+                        val text = call.argument<String>("text") ?: ""
+                        copySensitiveToClipboard(text)
+                        result.success(true)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+        }
+    }
+
+    private fun copySensitiveToClipboard(text: String) {
+        val clip = ClipData.newPlainText("sanctum", text)
+        // API 33+: mark the clip sensitive so the OS keeps it out of clipboard
+        // history and suppresses the paste-preview toast/overlay.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            clip.description.extras = PersistableBundle().apply {
+                putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+            }
+        }
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        cm.setPrimaryClip(clip)
     }
 
     private fun handleShareIntent(intent: Intent?) {
@@ -121,11 +159,14 @@ class MainActivity : FlutterFragmentActivity() {
         shareChannel = null
         keyAuthChannel?.setMethodCallHandler(null)
         keyAuthChannel = null
+        clipboardChannel?.setMethodCallHandler(null)
+        clipboardChannel = null
         SharedImageRuntime.detach(ownerId)
         super.onDestroy()
     }
 
     private companion object {
         const val CHANNEL = "com.sanctum.vault/share"
+        const val CLIPBOARD_CHANNEL = "com.sanctum.vault/clipboard"
     }
 }
