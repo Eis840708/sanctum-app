@@ -51,6 +51,19 @@ class KdfFloorViolation implements Exception {
   String toString() => 'KdfFloorViolation: $reason';
 }
 
+/// Raised when read-back Argon2id parameters exceed the safety ceiling
+/// (red-team RT-C-04). A malicious backup/header could otherwise specify an
+/// absurd memory/iteration cost that OOMs or hangs the device while deriving the
+/// KEK — before any password is verified (pre-auth DoS). This is an UPPER bound
+/// only: the floor and the "an existing vault below the floor is still readable"
+/// behaviour are unchanged.
+class KdfCeilingViolation implements Exception {
+  const KdfCeilingViolation(this.reason);
+  final String reason;
+  @override
+  String toString() => 'KdfCeilingViolation: $reason';
+}
+
 /// Self-describing Argon2id parameters (design-spec §3.2).
 ///
 /// Persisted with the vault so the KDF can be upgraded without guessing.
@@ -120,6 +133,44 @@ class KdfDescriptor {
       iterations < floorIterations ||
       lanes < floorLanes;
 
+  /// Safety ceiling for read-back parameters (red-team RT-C-04, director ruling).
+  /// Rejects an absurd Argon2id cost BEFORE it is run, so a hostile backup/header
+  /// cannot OOM/hang the device pre-auth. Upper bound only — never touches the
+  /// floor or the below-floor read compatibility.
+  static const int ceilingMemoryKib = 512 * 1024; // 512 MiB
+  static const int ceilingIterations = 16;
+  static const int ceilingLanes = 8;
+  static const int requiredOutLength = 32;
+  static const int requiredArgonVersion = 0x13;
+
+  /// Throws [KdfCeilingViolation] if these parameters exceed the safety ceiling
+  /// or use a non-canonical shape (kdf/version/out_len). Must run before any
+  /// Argon2 derivation. Does NOT enforce the floor — a legitimate weak/old vault
+  /// (below the floor but within the ceiling) still passes and stays readable.
+  void checkReadBounds() {
+    if (kdfId != VaultV3.kdfArgon2id) {
+      throw KdfCeilingViolation('kdf_id $kdfId is not Argon2id');
+    }
+    if (argonVersion != requiredArgonVersion) {
+      throw KdfCeilingViolation(
+          'argon version $argonVersion != $requiredArgonVersion');
+    }
+    if (outLength != requiredOutLength) {
+      throw KdfCeilingViolation('out_len $outLength != $requiredOutLength');
+    }
+    if (memoryKib > ceilingMemoryKib) {
+      throw KdfCeilingViolation(
+          'mem_kib $memoryKib above ceiling $ceilingMemoryKib');
+    }
+    if (iterations > ceilingIterations) {
+      throw KdfCeilingViolation(
+          'iterations $iterations above ceiling $ceilingIterations');
+    }
+    if (lanes > ceilingLanes) {
+      throw KdfCeilingViolation('lanes $lanes above ceiling $ceilingLanes');
+    }
+  }
+
   final Uint8List salt;
   final int memoryKib;
   final int iterations;
@@ -147,19 +198,26 @@ class KdfDescriptor {
         'normalization': normalization.label,
       };
 
-  static KdfDescriptor fromJson(Map<String, Object?> json) => KdfDescriptor(
-        salt: base64.decode(json['salt']! as String),
-        memoryKib: json['mem_kib']! as int,
-        iterations: json['iterations']! as int,
-        lanes: json['lanes']! as int,
-        kdfId: json['kdf_id']! as int,
-        argonVersion: json['version']! as int,
-        outLength: json['out_len']! as int,
-        normalization: PasswordNormalization.values.firstWhere(
-          (n) => n.label == json['normalization'],
-          orElse: () => PasswordNormalization.none,
-        ),
-      );
+  static KdfDescriptor fromJson(Map<String, Object?> json) {
+    final descriptor = KdfDescriptor(
+      salt: base64.decode(json['salt']! as String),
+      memoryKib: json['mem_kib']! as int,
+      iterations: json['iterations']! as int,
+      lanes: json['lanes']! as int,
+      kdfId: json['kdf_id']! as int,
+      argonVersion: json['version']! as int,
+      outLength: json['out_len']! as int,
+      normalization: PasswordNormalization.values.firstWhere(
+        (n) => n.label == json['normalization'],
+        orElse: () => PasswordNormalization.none,
+      ),
+    );
+    // RT-C-04: reject an absurd/hostile cost at the earliest read point, before
+    // it can ever reach Argon2 (pre-auth DoS). Ceiling only — below-floor read
+    // compatibility is unaffected.
+    descriptor.checkReadBounds();
+    return descriptor;
+  }
 }
 
 /// Wrapped DEK blob plus the nonce needed to unwrap it.
@@ -250,6 +308,9 @@ class VaultV3KeyHierarchy {
     if (descriptor.kdfId != VaultV3.kdfArgon2id) {
       throw const VaultV3KeyException('descriptor is not Argon2id');
     }
+    // RT-C-04 defensive guard: never run Argon2 with an above-ceiling cost, even
+    // if a descriptor reached here by a path other than fromJson. Fail-closed.
+    descriptor.checkReadBounds();
     final argon2id = Argon2id(
       parallelism: descriptor.lanes,
       memory: descriptor.memoryKib,

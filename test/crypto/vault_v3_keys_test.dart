@@ -59,6 +59,67 @@ void main() {
     });
   });
 
+  group('KdfDescriptor read ceiling (RT-C-04 pre-auth DoS)', () {
+    // Base a hostile header on fastKdf's valid JSON, then overwrite one field.
+    Map<String, Object?> jsonWith(Map<String, Object?> overrides) =>
+        {...fastKdf.toJson(), ...overrides};
+
+    test('a normal (below-floor) descriptor still reads back', () {
+      // fastKdf is below the security floor but within the ceiling — the
+      // below-floor read compatibility must be untouched.
+      expect(() => KdfDescriptor.fromJson(fastKdf.toJson()), returnsNormally);
+      final back = KdfDescriptor.fromJson(fastKdf.toJson());
+      expect(back.belowSecurityFloor, isTrue);
+    });
+
+    test('at-ceiling values are accepted', () {
+      expect(
+        () => KdfDescriptor.fromJson(jsonWith(<String, Object?>{
+          'mem_kib': KdfDescriptor.ceilingMemoryKib,
+          'iterations': KdfDescriptor.ceilingIterations,
+          'lanes': KdfDescriptor.ceilingLanes,
+        })),
+        returnsNormally,
+      );
+    });
+
+    test('fromJson rejects memory above the ceiling (before any Argon2)', () {
+      expect(
+        () => KdfDescriptor.fromJson(
+            jsonWith(<String, Object?>{'mem_kib': 8 * 1024 * 1024})), // 8 GiB
+        throwsA(isA<KdfCeilingViolation>()),
+      );
+    });
+
+    test('fromJson rejects iterations / lanes / out_len / version over limit', () {
+      expect(() => KdfDescriptor.fromJson(jsonWith(<String, Object?>{'iterations': 1000000})),
+          throwsA(isA<KdfCeilingViolation>()));
+      expect(() => KdfDescriptor.fromJson(jsonWith(<String, Object?>{'lanes': 255})),
+          throwsA(isA<KdfCeilingViolation>()));
+      expect(() => KdfDescriptor.fromJson(jsonWith(<String, Object?>{'out_len': 1024})),
+          throwsA(isA<KdfCeilingViolation>()));
+      expect(() => KdfDescriptor.fromJson(jsonWith(<String, Object?>{'version': 0x99})),
+          throwsA(isA<KdfCeilingViolation>()));
+      expect(() => KdfDescriptor.fromJson(jsonWith(<String, Object?>{'kdf_id': 0xDEAD})),
+          throwsA(isA<KdfCeilingViolation>()));
+    });
+
+    test('deriveKek guard rejects an over-ceiling descriptor before running Argon2',
+        () async {
+      final kh = VaultV3KeyHierarchy(random: _SeqRandom(3));
+      final hostile = KdfDescriptor(
+        salt: _bytes(32, 0x20),
+        memoryKib: 8 * 1024 * 1024, // 8 GiB — would OOM if it ever reached Argon2
+        iterations: 1,
+        lanes: 1,
+      );
+      await expectLater(
+        kh.deriveKek(password: 'pw', descriptor: hostile),
+        throwsA(isA<KdfCeilingViolation>()),
+      );
+    });
+  });
+
   group('Option 2 key hierarchy', () {
     late VaultV3KeyHierarchy kh;
 
