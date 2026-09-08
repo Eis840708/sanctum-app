@@ -200,6 +200,9 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
               SizedBox(width: double.infinity, child: ElevatedButton(
                 onPressed: () async {
                   if (site.text.isEmpty || user.text.isEmpty || pw.text.isEmpty) return;
+                  // Never touch ref / a locked vault if the screen was disposed
+                  // (auto-lock closed it) — BUG-ALPHA-LOCK-MODAL-01.
+                  if (!mounted) return;
                   await ref.read(passwordsNotifierProvider.notifier).add(
                     site: site.text, username: user.text,
                     password: pw.text, notes: notes.text);
@@ -264,6 +267,7 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
                       ),
                     ) ?? false;
                     if (!confirmed) return;
+                    if (!mounted) return; // disposed by auto-lock — abort safely
                     final backup = vaultService.getRawPasswordEntry(entry.id);
                     Navigator.pop(ctx);
                     await ref.read(passwordsNotifierProvider.notifier).delete(entry.id);
@@ -279,7 +283,9 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
                           label: S.get('undo'),
                           textColor: SanctumTheme.gold,
                           onPressed: () async {
+                            if (!mounted) return; // disposed by auto-lock
                             await vaultService.restoreRawPasswordEntry(backup);
+                            if (!mounted) return;
                             ref.read(passwordsNotifierProvider.notifier).load();
                           },
                         ),
@@ -317,6 +323,7 @@ class _PasswordsScreenState extends ConsumerState<PasswordsScreen> {
               SizedBox(width: double.infinity, child: ElevatedButton(
                 onPressed: () async {
                   if (site.text.isEmpty || user.text.isEmpty) return;
+                  if (!mounted) return; // disposed by auto-lock — abort safely
                   await ref.read(passwordsNotifierProvider.notifier).update(
                     entry,
                     site: site.text,

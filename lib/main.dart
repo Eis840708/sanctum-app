@@ -68,6 +68,17 @@ class SanctumApp extends ConsumerWidget {
   }
 }
 
+/// BUG-ALPHA-LOCK-MODAL-01: when the vault locks (auto-lock timeout or manual
+/// lock), tear down any modal / bottom-sheet / dialog left open on top of the
+/// shell. Otherwise a stale "Add password" sheet would sit over the lock screen
+/// and its Save handler would touch a disposed ref / a locked vault. popUntil-
+/// first guarantees no residual sheet can read or write the vault. Public so the
+/// regression test drives the identical code path _Root uses.
+void dismissModalsOnLock(BuildContext context) {
+  final nav = Navigator.of(context, rootNavigator: true);
+  if (nav.canPop()) nav.popUntil((r) => r.isFirst);
+}
+
 class _Root extends ConsumerWidget {
   const _Root();
   @override
@@ -78,6 +89,7 @@ class _Root extends ConsumerWidget {
         ref.read(inactivityProvider.notifier).resetTimer();
       } else {
         ref.read(inactivityProvider.notifier).cancel();
+        dismissModalsOnLock(context);
       }
     });
     return switch (auth) {
