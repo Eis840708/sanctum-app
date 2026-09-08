@@ -83,14 +83,31 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   Future<void> _submit() async {
     setState(() { _error = ''; _loading = true; });
     if (_isSetup) {
-      if (_generatedKey.isEmpty && _pw1.text.length < 12) { setState(() { _error = S.get('generateKeyOrLongPw'); _loading = false; }); return; }
-      if (_generatedKey.isNotEmpty && _pw1.text.trim() != _generatedKey) { setState(() { _error = S.get('keyMismatch'); _loading = false; }); return; }
+      // Validation early-returns run before any await, so the widget is still
+      // mounted here; guarded anyway to keep every setState uniform.
+      if (_generatedKey.isEmpty && _pw1.text.length < 12) {
+        if (mounted) setState(() { _error = S.get('generateKeyOrLongPw'); _loading = false; });
+        return;
+      }
+      if (_generatedKey.isNotEmpty && _pw1.text.trim() != _generatedKey) {
+        if (mounted) setState(() { _error = S.get('keyMismatch'); _loading = false; });
+        return;
+      }
       final vaultKey = _generatedKey.isNotEmpty ? _generatedKey : _pw1.text;
       await ref.read(authProvider.notifier).createVault(vaultKey);
     } else {
       final ok = await ref.read(authProvider.notifier).unlock(_pw1.text);
-      if (!ok) { setState(() { _error = S.get('wrongPassword'); _loading = false; }); return; }
+      // Wrong password: still on the lock screen, but the await means we must
+      // re-check mounted before touching state (BUG-ALPHA-LOCK-LIFECYCLE-02).
+      if (!ok) {
+        if (mounted) setState(() { _error = S.get('wrongPassword'); _loading = false; });
+        return;
+      }
     }
+    // Success: createVault/unlock flipped auth state to unlocked, which disposes
+    // this LockScreen. The await has returned into a dead State — do NOT setState
+    // (that was the null-check crash at _submit). No-op when unmounted.
+    if (!mounted) return;
     setState(() => _loading = false);
   }
 
