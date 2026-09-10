@@ -1,0 +1,12 @@
+SANCTUM Internal Alpha whitelist distribution manifest
+Generated: 2026-09-10 (Asia/Shanghai)
+Version: 1.6.0-alpha.1+7
+Package: com.sanctum.vault
+App source pin: ff82345aba7d03a3aa2f74b2f3f088e72e8828f8
+QA: CONDITIONAL PASS; documentation condition incorporated
+P0/P1 blockers at pin: 0
+
+APK_SHA256  1A6667ADEC3A84BEEF559B87B509A9B87239EC7B9006CBC36F668CBF1D4BD266  sanctum-1.6.0-alpha.1+7-ff82345-release.apk
+SIGNING_CERT_SHA256  78c3aa6baea917b5861ef8699938fb831075b5e924dd77c614c800faddc1721c
+
+Internal Android Alpha only. No public distribution. Synthetic data only.
